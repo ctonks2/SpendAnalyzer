@@ -37,11 +37,12 @@ def user_menu(dm, llm, rm, user_id):
     while True:
         print(textwrap.dedent("""
         \nUser Menu:
-        1) Upload a file (CSV or JSON)
+        1) Upload a file (CSV, JSON, XLSX, PDF)
         2) Ask the LLM about my spending
         3) Generate a list of premade reports
         4) List my transactions (in-memory)
-        5) Back
+        5) Import all files from data/raw/
+        6) Back
         """))
         choice = input("Choice: ").strip()
         if choice == "1":
@@ -71,6 +72,11 @@ def user_menu(dm, llm, rm, user_id):
             for t in txs[:20]:
                 print(t)
         elif choice == "5":
+            results = dm.import_all_from_raw(user_id)
+            print("Import results:")
+            for fname, res in results.items():
+                print(f"{fname}: {res}")
+        elif choice == "6":
             break
         else:
             print("Invalid choice.")
