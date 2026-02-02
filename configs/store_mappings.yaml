@@ -1,0 +1,10 @@
+# Example store field mappings
+# Map a store identifier to a field mapping if store-specific fields are needed
+
+generic:
+  date: ["date", "purchase_date", "transaction_date"]
+  store: ["store", "merchant"]
+  item_name: ["item", "name"]
+  quantity: ["qty", "quantity"]
+  unit_price: ["price", "unit_price"]
+  total_price: ["total", "amount"]
