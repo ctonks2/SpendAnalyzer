@@ -2,9 +2,29 @@
 # Map a store identifier to a field mapping if store-specific fields are needed
 
 generic:
-  date: ["date", "purchase_date", "transaction_date"]
+  date: ["date", "purchase_date", "transaction_date", "Date"]
+  store: ["store", "merchant", "Store"]
+  item_name: ["item", "name", "Description", "purchasedescription"]
+  quantity: ["qty", "quantity", "Quantity"]
+  unit_price: ["price", "unit_price", "retailamt", "Price"]
+  total_price: ["total", "amount", "customerloyamt", "TransPrice", "GrandTotal"]
+
+smiths:
+  # Smiths JSON structure: basket -> items with purchasedescription, productupc, retailamt, customerloyamt
+  date: ["date", "purchase_date"]
   store: ["store", "merchant"]
-  item_name: ["item", "name"]
-  quantity: ["qty", "quantity"]
-  unit_price: ["price", "unit_price"]
-  total_price: ["total", "amount"]
+  orderno: ["orderno"]
+  item_name: ["purchasedescription", "item", "description"]
+  product_upc: ["productupc"]
+  unit_price: ["retailamt"]
+  total_price: ["customerloyamt"]
+
+maceys:
+  # Macey Excel (sheet2) columns
+  date: ["Date", "date"]
+  store: ["Store"]
+  orderno: ["Trans", "trans"]
+  item_name: ["Description"]
+  product_upc: ["UPC"]
+  unit_price: ["Price"]
+  total_price: ["TransPrice", "GrandTotal"]

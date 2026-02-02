@@ -9,13 +9,16 @@ import pandas as pd
 from PyPDF2 import PdfReader
 
 DEFAULT_MAPPING = {
-    "date": ["date", "purchase_date", "transaction_date"],
-    "store": ["store", "merchant", "location"],
-    "item_name": ["item", "name", "description", "purchasedescription"],
-    "quantity": ["qty", "quantity", "amount"],
-    "unit_price": ["price", "unit_price", "retailamt"],
-    "total_price": ["total", "total_price", "amount","customerloyamt"],
+    "date": ["date", "purchase_date", "transaction_date", "Date"],
+    "store": ["store", "merchant", "location", "Store"],
+    "item_name": ["item", "name", "description", "purchasedescription", "Description"],
+    "quantity": ["qty", "quantity", "amount", "Quantity"],
+    "unit_price": ["price", "unit_price", "retailamt", "Price"],
+    "total_price": ["total", "total_price", "amount", "customerloyamt", "TransPrice", "GrandTotal"],
     "category": ["category", "cat", "product_category"],
+    # Additional helpful fields
+    "orderno": ["orderno", "Trans", "trans"],
+    "product_upc": ["productupc", "UPC", "upc"],
 }
 
 
@@ -145,7 +148,14 @@ class DataManager:
 
     def _import_xlsx(self, path, user_id):
         """Import an XLSX where each row is an item. Rows with an isTotalline flag mark receipt totals."""
+        # Read the default sheet; if expected Macey columns aren't present, try sheet index 1 (sheet2)
         df = pd.read_excel(path, engine="openpyxl")
+        # If the sheet doesn't include typical Macey columns, attempt to read sheet2
+        if not any(c in df.columns for c in ("UPC", "Description", "Trans", "Price", "TransPrice")):
+            try:
+                df = pd.read_excel(path, sheet_name=1, engine="openpyxl")
+            except Exception:
+                pass
         count = 0
         for _, row in df.fillna("").iterrows():
             # convert pandas Series to plain dict with string keys
@@ -251,6 +261,8 @@ class DataManager:
             "unit_price": None,
             "total_price": None,
             "category": None,
+            "orderno": None,
+            "product_upc": None,
         }
         # simple key matching using DEFAULT_MAPPING
         for canon, candidates in DEFAULT_MAPPING.items():
@@ -262,55 +274,11 @@ class DataManager:
         if normalized["total_price"] in (None, "") and "amount" in row:
             normalized["total_price"] = row.get("amount")
 
-        # Attempt to parse date
-        d = normalized.get("date") or row.get("date") or row.get("purchase_date")
-        if d:
-            try:
-                normalized["date"] = str(datetime.fromisoformat(d))
-            except Exception:
-                normalized["date"] = str(d)
-
-        # numeric conversions
-        try:
-            if normalized.get("quantity") is not None:
-                normalized["quantity"] = float(normalized.get("quantity"))
-        except Exception:
-            normalized["quantity"] = 1
-        try:
-            if normalized.get("unit_price") not in (None, ""):
-                normalized["unit_price"] = float(normalized.get("unit_price"))
-        except Exception:
-            pass
-        try:
-            if normalized.get("total_price") not in (None, ""):
-                normalized["total_price"] = float(normalized.get("total_price"))
-        except Exception:
-            pass
-
-        return normalized
-
-    def _normalize_row(self, row, user_id):
-        # Row is a mapping of arbitrary keys -> values.
-        normalized = {
-            "transaction_id": f"tx_{len(self.transactions)+1}",
-            "user_id": user_id,
-            "date": None,
-            "store": None,
-            "item_name": None,
-            "quantity": 1,
-            "unit_price": None,
-            "total_price": None,
-            "category": None,
-        }
-        # simple key matching using DEFAULT_MAPPING
-        for canon, candidates in DEFAULT_MAPPING.items():
-            for cand in candidates:
-                if cand in row and row[cand] not in (None, ""):
-                    normalized[canon if canon != "total_price" else "total_price"] = row[cand]
-                    break
-        # Coping with common keys
-        if normalized["total_price"] in (None, "") and "amount" in row:
-            normalized["total_price"] = row.get("amount")
+        # Ensure ordner/product_upc values are strings when present
+        if normalized.get("orderno") not in (None, ""):
+            normalized["orderno"] = str(normalized.get("orderno"))
+        if normalized.get("product_upc") not in (None, ""):
+            normalized["product_upc"] = str(normalized.get("product_upc"))
 
         # Attempt to parse date
         d = normalized.get("date") or row.get("date") or row.get("purchase_date")
@@ -324,6 +292,37 @@ class DataManager:
                     normalized["date"] = dt.isoformat()
             except Exception:
                 normalized["date"] = str(d)
+
+        # Capture order/receipt id if available
+        if not normalized.get("orderno"):
+            if "orderno" in row and row.get("orderno") not in (None, ""):
+                normalized["orderno"] = str(row.get("orderno"))
+            elif "Trans" in row and row.get("Trans") not in (None, ""):
+                normalized["orderno"] = str(row.get("Trans"))
+            elif "trans" in row and row.get("trans") not in (None, ""):
+                normalized["orderno"] = str(row.get("trans"))
+
+        # Capture UPC/product identifier if present
+        if not normalized.get("product_upc"):
+            if "productupc" in row and row.get("productupc") not in (None, ""):
+                normalized["product_upc"] = str(row.get("productupc"))
+            elif "UPC" in row and row.get("UPC") not in (None, ""):
+                normalized["product_upc"] = str(row.get("UPC"))
+
+        # Prefer retailamt as unit_price (pre-discount) and customerloyamt/TransPrice as total_price (post-discount)
+        if normalized.get("unit_price") in (None, ""):
+            if "retailamt" in row and row.get("retailamt") not in (None, ""):
+                normalized["unit_price"] = row.get("retailamt")
+            elif "Price" in row and row.get("Price") not in (None, ""):
+                normalized["unit_price"] = row.get("Price")
+
+        if normalized.get("total_price") in (None, ""):
+            if "customerloyamt" in row and row.get("customerloyamt") not in (None, ""):
+                normalized["total_price"] = row.get("customerloyamt")
+            elif "TransPrice" in row and row.get("TransPrice") not in (None, ""):
+                normalized["total_price"] = row.get("TransPrice")
+            elif "GrandTotal" in row and row.get("GrandTotal") not in (None, ""):
+                normalized["total_price"] = row.get("GrandTotal")
 
         # numeric conversions
         try:
