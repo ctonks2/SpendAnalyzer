@@ -69,7 +69,7 @@ def user_menu(dm, llm, rm, user_id):
         elif choice == "4":
             txs = dm.get_transactions_by_user(user_id)
             print(f"Transactions ({len(txs)})")
-            for t in txs[:20]:
+            for t in txs[:120]:
                 print(t)
         elif choice == "5":
             results = dm.import_all_from_raw(user_id)
@@ -83,13 +83,17 @@ def user_menu(dm, llm, rm, user_id):
 
 
 def admin_menu(dm, llm, rm):
+    import argparse
+    from . import migrate as migrate_module
+
     while True:
         print(textwrap.dedent("""
         \nAdmin Menu:
         1) View all transactions
         2) Ask the LLM (admin-wide)
         3) Define a new premade report (prompt LLM for ideas)
-        4) Back
+        4) Migrate in-memory transactions to DB
+        5) Back
         """))
         choice = input("Choice: ").strip()
         if choice == "1":
@@ -103,6 +107,11 @@ def admin_menu(dm, llm, rm):
             resp = llm.ask(prompt, context=dm.transactions)
             print("LLM suggestion:\n", resp)
         elif choice == "4":
+            db_url = input("DB URL (e.g., sqlite:///spend_analyzer.db): ").strip() or "sqlite:///spend_analyzer.db"
+            print("Migrating transactions to", db_url)
+            res = migrate_module.migrate_transactions(dm.transactions, db_url=db_url)
+            print("Migration result:", res)
+        elif choice == "5":
             break
         else:
             print("Invalid choice.")

@@ -50,3 +50,19 @@ def test_import_nested_items_extracted(tmp_path):
     assert tx.get("item_name") == "NestedProduct"
     assert tx.get("date") == "2026-01-01"
     assert tx.get("store") == "NestedShop"
+
+
+def test_skip_receipt_total_without_amount(tmp_path):
+    # A row marked as total but missing any total field should not be added as a transaction
+    import pandas as pd
+
+    df = pd.DataFrame([{"isTotalline": True, "store": "TestStore", "date": "2026-02-02"}])
+    p = tmp_path / "totals.xlsx"
+    with pd.ExcelWriter(p, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False)
+
+    dm = DataManager()
+    cnt = dm.import_file(str(p), user_id="ct")
+
+    assert cnt == 0
+    assert len(dm.get_transactions_by_user("ct")) == 0

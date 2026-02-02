@@ -179,12 +179,16 @@ class DataManager:
                     "total_price": rowdict.get("total") or rowdict.get("amount") or rowdict.get("price"),
                     "category": None,
                 }
-                # attempt numeric conversion
+                # Require a present, numeric total_price for receipt-level transactions; otherwise skip
+                tp = tx.get("total_price")
+                if tp in (None, ""):
+                    # skip adding empty receipt totals
+                    continue
                 try:
-                    if tx["total_price"] not in (None, ""):
-                        tx["total_price"] = float(str(tx["total_price"]).replace(",", ""))
+                    tx["total_price"] = float(str(tp).replace(",", ""))
                 except Exception:
-                    pass
+                    # if conversion fails, skip this receipt total
+                    continue
                 self.transactions.append(tx)
                 count += 1
             else:
