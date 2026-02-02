@@ -7,6 +7,8 @@ from datetime import datetime
 import yaml
 import pandas as pd
 from PyPDF2 import PdfReader
+import shutil
+import tempfile
 
 DEFAULT_MAPPING = {
     "date": ["date", "purchase_date", "transaction_date", "Date"],
@@ -34,6 +36,20 @@ def _load_mappings():
     return cfg
 
 
+def _infer_source_from_filename(path):
+    """Infer the file source name from the filename. Returns a cleaned first token, e.g., 'Smiths' or 'Maceys'."""
+    try:
+        base = os.path.basename(path)
+        name = os.path.splitext(base)[0]
+        # Split on underscore or space, take first chunk
+        first = name.split("_")[0].split(" ")[0]
+        # remove punctuation like apostrophes, keep alnum
+        cleaned = "".join(ch for ch in first if ch.isalnum())
+        return cleaned.title() if cleaned else name
+    except Exception:
+        return path
+
+
 class DataManager:
     def __init__(self):
         self.transactions = []  # list of dicts
@@ -56,9 +72,12 @@ class DataManager:
 
     def _import_csv(self, path, user_id):
         count = 0
+        source = _infer_source_from_filename(path)
         with open(path, newline="", encoding="utf-8") as fh:
             reader = csv.DictReader(fh)
             for row in reader:
+                # annotate source (first token of filename) so downstream logic can use it
+                row["source"] = source
                 tx = self._normalize_row(row, user_id)
                 self.transactions.append(tx)
                 count += 1
@@ -140,7 +159,11 @@ class DataManager:
         else:
             items = [data]
 
+        source = _infer_source_from_filename(path)
         for row in items:
+            # annotate source so normalization can behave differently per source
+            if isinstance(row, dict):
+                row["source"] = source
             tx = self._normalize_row(row, user_id)
             self.transactions.append(tx)
             count += 1
@@ -149,17 +172,39 @@ class DataManager:
     def _import_xlsx(self, path, user_id):
         """Import an XLSX where each row is an item. Rows with an isTotalline flag mark receipt totals."""
         # Read the default sheet; if expected Macey columns aren't present, try sheet index 1 (sheet2)
-        df = pd.read_excel(path, engine="openpyxl")
+        try:
+            df = pd.read_excel(path, engine="openpyxl")
+        except (PermissionError, OSError) as e:
+            # Permission denied (file locked by Excel/OneDrive). Try copying to a temp file and read again.
+            try:
+                tmpdir = tempfile.gettempdir()
+                tmp_copy = os.path.join(tmpdir, f"copy_{os.path.basename(path)}")
+                shutil.copy2(path, tmp_copy)
+                df = pd.read_excel(tmp_copy, engine="openpyxl")
+            except Exception:
+                raise e
+        except Exception as e:
+            # Any other read error, re-raise
+            raise
+
         # If the sheet doesn't include typical Macey columns, attempt to read sheet2
-        if not any(c in df.columns for c in ("UPC", "Description", "Trans", "Price", "TransPrice")):
+        if not any(c in df.columns for c in ("UPC", "Description", "Trans", "Amount", "TransPrice")):
             try:
                 df = pd.read_excel(path, sheet_name=1, engine="openpyxl")
             except Exception:
-                pass
+                try:
+                    # if original read failed due to lock we may need to try the temp copy
+                    tmpdir = tempfile.gettempdir()
+                    tmp_copy = os.path.join(tmpdir, f"copy_{os.path.basename(path)}")
+                    df = pd.read_excel(tmp_copy, sheet_name=1, engine="openpyxl")
+                except Exception:
+                    pass
         count = 0
         for _, row in df.fillna("").iterrows():
             # convert pandas Series to plain dict with string keys
             rowdict = {str(k): (None if pd.isna(v) else v) for k, v in row.items()}
+            # annotate source filename first token
+            rowdict["source"] = _infer_source_from_filename(path)
             # check for total line markers
             is_total = False
             for key in ("isTotalline", "isTotalLine", "is_total_line", "is_total"):
@@ -231,7 +276,10 @@ class DataManager:
             items = data
         else:
             items = [data]
+        source = _infer_source_from_filename(path)
         for row in items:
+            if isinstance(row, dict):
+                row["source"] = source
             tx = self._normalize_row(row, user_id)
             self.transactions.append(tx)
             count += 1
@@ -267,6 +315,7 @@ class DataManager:
             "category": None,
             "orderno": None,
             "product_upc": None,
+            "source": None,
         }
         # simple key matching using DEFAULT_MAPPING
         for canon, candidates in DEFAULT_MAPPING.items():
@@ -277,6 +326,21 @@ class DataManager:
         # Coping with common keys
         if normalized["total_price"] in (None, "") and "amount" in row:
             normalized["total_price"] = row.get("amount")
+
+        # Preserve source annotation if present (inferred from filename)
+        if "source" in row and row.get("source") not in (None, ""):
+            normalized["source"] = row.get("source")
+
+        # If this came from Smiths or Maceys, their 'store' field often contains a numeric store id; keep digits only
+        if normalized.get("source"):
+            src = str(normalized.get("source")).lower()
+            if src.startswith("smith") or src.startswith("maceys") or src.startswith("macy"):
+                if normalized.get("store") not in (None, ""):
+                    s = str(normalized.get("store"))
+                    digits = "".join(ch for ch in s if ch.isdigit())
+                    if digits:
+                        # only replace when digits are present; otherwise keep original
+                        normalized["store"] = digits
 
         # Ensure ordner/product_upc values are strings when present
         if normalized.get("orderno") not in (None, ""):
@@ -317,8 +381,8 @@ class DataManager:
         if normalized.get("unit_price") in (None, ""):
             if "retailamt" in row and row.get("retailamt") not in (None, ""):
                 normalized["unit_price"] = row.get("retailamt")
-            elif "Price" in row and row.get("Price") not in (None, ""):
-                normalized["unit_price"] = row.get("Price")
+            elif "Price" in row and row.get("Amount") not in (None, ""):
+                normalized["unit_price"] = row.get("Amount")
 
         if normalized.get("total_price") in (None, ""):
             if "customerloyamt" in row and row.get("customerloyamt") not in (None, ""):
