@@ -11,11 +11,11 @@ from PyPDF2 import PdfReader
 DEFAULT_MAPPING = {
     "date": ["date", "purchase_date", "transaction_date"],
     "store": ["store", "merchant", "location"],
-    "item_name": ["item", "name", "description"],
+    "item_name": ["item", "name", "description", "purchasedescription"],
     "quantity": ["qty", "quantity", "amount"],
-    "unit_price": ["price", "unit_price"],
-    "total_price": ["total", "total_price", "amount"],
-    "category": ["category", "cat"],
+    "unit_price": ["price", "unit_price", "retailamt"],
+    "total_price": ["total", "total_price", "amount","customerloyamt"],
+    "category": ["category", "cat", "product_category"],
 }
 
 
@@ -61,21 +61,86 @@ class DataManager:
                 count += 1
         return count
 
+    def _collect_items_from_data(self, data):
+        """Recursively collect all item dictionaries found under any 'items' key."""
+        found = []
+        def walk(obj, parent=None):
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    if k == 'items' and isinstance(v, list):
+                        for item in v:
+                            if isinstance(item, dict):
+                                merged = dict(item)
+                                # inherit some useful parent fields if present
+                                for field in ('date', 'purchase_date', 'orderno', 'store', 'time'):
+                                    if field in obj and field not in merged:
+                                        merged[field] = obj[field]
+                                found.append(merged)
+                            else:
+                                found.append(item)
+                    else:
+                        walk(v, obj)
+            elif isinstance(obj, list):
+                for el in obj:
+                    walk(el, parent)
+        walk(data)
+        return found
+
     def _import_json(self, path, user_id):
+        """Import JSON with some tolerance for common formatting issues (trailing commas, comments)."""
         count = 0
         with open(path, encoding="utf-8") as fh:
-            data = json.load(fh)
-            # Expect list of items or dict with 'items'
-            if isinstance(data, dict) and "items" in data:
-                items = data["items"]
-            elif isinstance(data, list):
-                items = data
-            else:
+            text = fh.read()
+
+        # Try standard JSON parsing first
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            # Attempt simple fixes: remove // comments, /* */ comments, and trailing commas
+            cleaned = re.sub(r"//.*?$", "", text, flags=re.M)
+            cleaned = re.sub(r"/\*.*?\*/", "", cleaned, flags=re.S)
+            cleaned = re.sub(r",\s*(\]|})", r"\1", cleaned)
+            data = None
+            try:
+                data = json.loads(cleaned)
+            except Exception:
+                # Second-pass: remove standalone numeric artifacts (e.g., page numbers or stray digits)
+                cleaned2 = re.sub(r"^\s*\d+\s*,?\s*$", "", cleaned, flags=re.M)
+                # Try cleaned2 first
+                try:
+                    data = json.loads(cleaned2)
+                except Exception:
+                    # Also try to extract the first JSON-like substring as a last resort
+                    m = re.search(r"(\{.*\}|\[.*\])", cleaned2, re.S)
+                    if m:
+                        try:
+                            candidate = m.group(1)
+                            data = json.loads(candidate)
+                        except Exception:
+                            data = None
+                if data is None:
+                    raise ValueError(f"JSON parse error: {e}; attempted fixes failed")
+
+        # Normalize: collect item dicts from nested structures
+        items = []
+        if isinstance(data, dict):
+            # collect items under any nested 'items' key
+            items = self._collect_items_from_data(data)
+            # if no nested items found but top-level 'items' exists, use that
+            if not items and 'items' in data:
+                items = data['items']
+            # if still no items, fall back to treating the dict as a single record
+            if not items:
                 items = [data]
-            for row in items:
-                tx = self._normalize_row(row, user_id)
-                self.transactions.append(tx)
-                count += 1
+        elif isinstance(data, list):
+            items = data
+        else:
+            items = [data]
+
+        for row in items:
+            tx = self._normalize_row(row, user_id)
+            self.transactions.append(tx)
+            count += 1
         return count
 
     def _import_xlsx(self, path, user_id):
@@ -251,7 +316,12 @@ class DataManager:
         d = normalized.get("date") or row.get("date") or row.get("purchase_date")
         if d:
             try:
-                normalized["date"] = str(datetime.fromisoformat(d))
+                dt = datetime.fromisoformat(d)
+                # If time is midnight, prefer date-only string (YYYY-MM-DD)
+                if dt.hour == 0 and dt.minute == 0 and dt.second == 0:
+                    normalized["date"] = dt.date().isoformat()
+                else:
+                    normalized["date"] = dt.isoformat()
             except Exception:
                 normalized["date"] = str(d)
 
