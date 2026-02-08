@@ -18,7 +18,8 @@ def test_smiths_store_number_and_source(tmp_path):
     p.write_text(json.dumps(obj), encoding="utf-8")
 
     dm = DataManager()
-    cnt = dm.import_file(str(p), user_id="u_smith")
+    result = dm.import_file(str(p), user_id="u_smith")
+    cnt = result.get("imported", 0)
 
     assert cnt == 1
     tx = dm.get_transactions_by_user("u_smith")[0]
@@ -48,7 +49,8 @@ def test_maceys_source_added_from_excel(tmp_path):
         sheet2.to_excel(writer, index=False, sheet_name="Sheet2")
 
     dm = DataManager()
-    cnt = dm.import_file(str(p), user_id="u_maceys")
+    result = dm.import_file(str(p), user_id="u_maceys")
+    cnt = result.get("imported", 0)
 
     assert cnt == 1
     tx = dm.get_transactions_by_user("u_maceys")[0]

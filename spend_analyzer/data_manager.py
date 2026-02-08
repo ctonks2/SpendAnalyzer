@@ -12,15 +12,15 @@ import tempfile
 
 DEFAULT_MAPPING = {
     "date": ["date", "purchase_date", "transaction_date", "Date"],
-    "store": ["store", "merchant", "location", "Store"],
-    "item_name": ["item", "name", "description", "purchasedescription", "Description"],
-    "quantity": ["qty", "quantity", "amount", "Quantity"],
+    "store": ["store", "merchant", "location", "Store", "Whs"],
+    "item_name": ["item", "name", "description", "purchasedescription", "Description","Item Description"],
+    "quantity": ["qty","Qty", "quantity", "amount", "Quantity"],
     "unit_price": ["price", "unit_price", "retailamt", "Price"],
-    "total_price": ["total", "total_price", "amount", "customerloyamt", "TransPrice", "GrandTotal"],
+    "total_price": ["total", "total_price", "amount", "Amount", "customerloyamt", "TransPrice", "GrandTotal"],
     "category": ["category", "cat", "product_category"],
     # Additional helpful fields
     "orderno": ["orderno", "Trans", "trans"],
-    "product_upc": ["productupc", "UPC", "upc"],
+    "product_upc": ["productupc", "UPC", "upc","Item"],
 }
 
 
@@ -53,25 +53,76 @@ def _infer_source_from_filename(path):
 class DataManager:
     def __init__(self):
         self.transactions = []  # list of dicts
+        self.transaction_hashes = set()  # track fingerprints to detect duplicates
         self.mappings = _load_mappings()
+        # Build hashes from existing transactions
+        for tx in self.transactions:
+            h = self._compute_transaction_hash(tx)
+            if h:
+                self.transaction_hashes.add(h)
 
-    def import_file(self, path, user_id="user"):
+    def _compute_transaction_hash(self, tx):
+        """Compute a hash from key transaction fields to detect duplicates."""
+        import hashlib
+        key_fields = (
+            str(tx.get("date") or ""),
+            str(tx.get("store") or ""),
+            str(tx.get("total_price") or ""),
+            str(tx.get("item_name") or ""),
+        )
+        combined = "|".join(key_fields)
+        return hashlib.md5(combined.encode()).hexdigest()
+
+    def import_file(self, path, user_id="user", duplicate_handling="skip"):
+        """Import file with duplicate handling.
+        
+        Args:
+            path: Path to file
+            user_id: User identifier
+            duplicate_handling: "skip" (don't import duplicates), "replace" (overwrite existing),
+                               or "allow" (import anyway)
+        
+        Returns:
+            Dict with {"imported": count, "skipped": count, "replaced": count}
+        """
         if not os.path.exists(path):
             raise FileNotFoundError(path)
         _, ext = os.path.splitext(path)
         if ext.lower() in (".csv",):
-            return self._import_csv(path, user_id)
+            return self._import_csv(path, user_id, duplicate_handling)
         elif ext.lower() in (".json",):
-            return self._import_json(path, user_id)
+            return self._import_json(path, user_id, duplicate_handling)
         elif ext.lower() in (".xlsx", ".xls"):
-            return self._import_xlsx(path, user_id)
+            return self._import_xlsx(path, user_id, duplicate_handling)
         elif ext.lower() in (".pdf",):
-            return self._import_pdf(path, user_id)
+            return self._import_pdf(path, user_id, duplicate_handling)
         else:
             raise ValueError("Unsupported file type")
 
-    def _import_csv(self, path, user_id):
-        count = 0
+    def _add_transaction(self, tx, duplicate_handling="skip"):
+        """Add a transaction with duplicate handling.
+        
+        Returns: True if added, False if skipped
+        """
+        h = self._compute_transaction_hash(tx)
+        if h in self.transaction_hashes:
+            # Duplicate detected
+            if duplicate_handling == "skip":
+                return False
+            elif duplicate_handling == "replace":
+                # Find and remove the old transaction
+                self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
+        
+        # Add the new transaction
+        self.transactions.append(tx)
+        if h:
+            self.transaction_hashes.add(h)
+        return True
+
+    def _import_csv(self, path, user_id, duplicate_handling="skip"):
+        imported = 0
+        skipped = 0
+        replaced = 0
         source = _infer_source_from_filename(path)
         with open(path, newline="", encoding="utf-8") as fh:
             reader = csv.DictReader(fh)
@@ -79,9 +130,19 @@ class DataManager:
                 # annotate source (first token of filename) so downstream logic can use it
                 row["source"] = source
                 tx = self._normalize_row(row, user_id)
+                h = self._compute_transaction_hash(tx)
+                if h in self.transaction_hashes:
+                    if duplicate_handling == "skip":
+                        skipped += 1
+                        continue
+                    elif duplicate_handling == "replace":
+                        self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
+                        replaced += 1
                 self.transactions.append(tx)
-                count += 1
-        return count
+                if h:
+                    self.transaction_hashes.add(h)
+                imported += 1
+        return {"imported": imported, "skipped": skipped, "replaced": replaced}
 
     def _collect_items_from_data(self, data):
         """Recursively collect all item dictionaries found under any 'items' key."""
@@ -108,9 +169,11 @@ class DataManager:
         walk(data)
         return found
 
-    def _import_json(self, path, user_id):
+    def _import_json(self, path, user_id, duplicate_handling="skip"):
         """Import JSON with some tolerance for common formatting issues (trailing commas, comments)."""
-        count = 0
+        imported = 0
+        skipped = 0
+        replaced = 0
         with open(path, encoding="utf-8") as fh:
             text = fh.read()
 
@@ -165,11 +228,21 @@ class DataManager:
             if isinstance(row, dict):
                 row["source"] = source
             tx = self._normalize_row(row, user_id)
+            h = self._compute_transaction_hash(tx)
+            if h in self.transaction_hashes:
+                if duplicate_handling == "skip":
+                    skipped += 1
+                    continue
+                elif duplicate_handling == "replace":
+                    self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
+                    replaced += 1
             self.transactions.append(tx)
-            count += 1
-        return count
+            if h:
+                self.transaction_hashes.add(h)
+            imported += 1
+        return {"imported": imported, "skipped": skipped, "replaced": replaced}
 
-    def _import_xlsx(self, path, user_id):
+    def _import_xlsx(self, path, user_id, duplicate_handling="skip"):
         """Import an XLSX where each row is an item. Rows with an isTotalline flag mark receipt totals."""
         # Read the default sheet; if expected Macey columns aren't present, try sheet index 1 (sheet2)
         try:
@@ -199,7 +272,9 @@ class DataManager:
                     df = pd.read_excel(tmp_copy, sheet_name=1, engine="openpyxl")
                 except Exception:
                     pass
-        count = 0
+        imported = 0
+        skipped = 0
+        replaced = 0
         for _, row in df.fillna("").iterrows():
             # convert pandas Series to plain dict with string keys
             rowdict = {str(k): (None if pd.isna(v) else v) for k, v in row.items()}
@@ -234,17 +309,39 @@ class DataManager:
                 except Exception:
                     # if conversion fails, skip this receipt total
                     continue
+                h = self._compute_transaction_hash(tx)
+                if h in self.transaction_hashes:
+                    if duplicate_handling == "skip":
+                        skipped += 1
+                        continue
+                    elif duplicate_handling == "replace":
+                        self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
+                        replaced += 1
                 self.transactions.append(tx)
-                count += 1
+                if h:
+                    self.transaction_hashes.add(h)
+                imported += 1
             else:
                 tx = self._normalize_row(rowdict, user_id)
+                h = self._compute_transaction_hash(tx)
+                if h in self.transaction_hashes:
+                    if duplicate_handling == "skip":
+                        skipped += 1
+                        continue
+                    elif duplicate_handling == "replace":
+                        self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
+                        replaced += 1
                 self.transactions.append(tx)
-                count += 1
-        return count
+                if h:
+                    self.transaction_hashes.add(h)
+                imported += 1
+        return {"imported": imported, "skipped": skipped, "replaced": replaced}
 
-    def _import_pdf(self, path, user_id):
+    def _import_pdf(self, path, user_id, duplicate_handling="skip"):
         """Attempt to extract text from a PDF and parse a JSON blob if present."""
-        count = 0
+        imported = 0
+        skipped = 0
+        replaced = 0
         reader = PdfReader(path)
         text = []
         for p in reader.pages:
@@ -281,11 +378,21 @@ class DataManager:
             if isinstance(row, dict):
                 row["source"] = source
             tx = self._normalize_row(row, user_id)
+            h = self._compute_transaction_hash(tx)
+            if h in self.transaction_hashes:
+                if duplicate_handling == "skip":
+                    skipped += 1
+                    continue
+                elif duplicate_handling == "replace":
+                    self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
+                    replaced += 1
             self.transactions.append(tx)
-            count += 1
-        return count
+            if h:
+                self.transaction_hashes.add(h)
+            imported += 1
+        return {"imported": imported, "skipped": skipped, "replaced": replaced}
 
-    def import_all_from_raw(self, user_id="user"):
+    def import_all_from_raw(self, user_id="user", duplicate_handling="skip"):
         """Import all files found in data/raw and return summary dict"""
         raw_dir = os.path.join(os.getcwd(), "data", "raw")
         results = {}
@@ -295,8 +402,8 @@ class DataManager:
             path = os.path.join(raw_dir, fname)
             if os.path.isfile(path):
                 try:
-                    cnt = self.import_file(path, user_id)
-                    results[fname] = cnt
+                    res = self.import_file(path, user_id, duplicate_handling=duplicate_handling)
+                    results[fname] = res
                 except Exception as e:
                     results[fname] = f"error: {e}"
         return results
@@ -330,6 +437,20 @@ class DataManager:
         # Preserve source annotation if present (inferred from filename)
         if "source" in row and row.get("source") not in (None, ""):
             normalized["source"] = row.get("source")
+
+        # If there's no explicit orderno, fall back to using a combination of
+        # date and store as the order identifier. This helps sources like
+        # Costco which may omit an order number, while reducing accidental
+        # merging of different receipts on the same date.
+        if not normalized.get("orderno") and normalized.get("date"):
+            date_str = str(normalized.get("date"))
+            store_str = str(normalized.get("store") or "").strip()
+            if store_str:
+                # make a safe store token (replace whitespace with underscore)
+                store_safe = re.sub(r"\s+", "_", store_str)
+                normalized["orderno"] = f"{date_str}-{store_safe}"
+            else:
+                normalized["orderno"] = date_str
 
         # If this came from Smiths or Maceys, their 'store' field often contains a numeric store id; keep digits only
         if normalized.get("source"):

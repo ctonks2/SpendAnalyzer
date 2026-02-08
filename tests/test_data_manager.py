@@ -10,7 +10,8 @@ def test_import_malformed_json_recovers(tmp_path):
     p.write_text(text, encoding="utf-8")
 
     dm = DataManager()
-    cnt = dm.import_file(str(p), user_id="u1")
+    result = dm.import_file(str(p), user_id="u1")
+    cnt = result.get("imported", 0)
 
     assert cnt == 2
     txs = dm.get_transactions_by_user("u1")
@@ -41,7 +42,8 @@ def test_import_nested_items_extracted(tmp_path):
     p.write_text(json.dumps(nested), encoding="utf-8")
 
     dm = DataManager()
-    cnt = dm.import_file(str(p), user_id="u2")
+    result = dm.import_file(str(p), user_id="u2")
+    cnt = result.get("imported", 0)
 
     assert cnt == 1
     txs = dm.get_transactions_by_user("u2")
@@ -62,7 +64,8 @@ def test_skip_receipt_total_without_amount(tmp_path):
         df.to_excel(writer, index=False)
 
     dm = DataManager()
-    cnt = dm.import_file(str(p), user_id="ct")
+    result = dm.import_file(str(p), user_id="ct")
+    cnt = result.get("imported", 0)
 
     assert cnt == 0
     assert len(dm.get_transactions_by_user("ct")) == 0

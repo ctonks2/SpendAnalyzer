@@ -22,7 +22,8 @@ def test_maceys_store_number_extracted(tmp_path):
         sheet2.to_excel(writer, index=False, sheet_name="Sheet2")
 
     dm = DataManager()
-    cnt = dm.import_file(str(p), user_id="u_maceys")
+    result = dm.import_file(str(p), user_id="u_maceys")
+    cnt = result.get("imported", 0)
 
     assert cnt == 1
     tx = dm.get_transactions_by_user("u_maceys")[0]
