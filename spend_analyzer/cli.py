@@ -4,7 +4,8 @@ import json
 from collections import Counter, defaultdict
 from .data_manager import DataManager
 from .llm_client import LLMClient
-from .reports import ReportManager
+from .llm_menu import LLMMenu
+from .files import FilesManager
 
 
 def _show_menu(menu_dict, title=None):
@@ -13,7 +14,7 @@ def _show_menu(menu_dict, title=None):
         print(f"\n{title}")
     for choice, (description, _) in sorted(menu_dict.items()):
         print(f"{choice}) {description}")
-
+        
 
 def _run_menu(menu_dict):
     """Run a menu loop with dictionary of {choice: (description, handler_func)}
@@ -36,13 +37,12 @@ def _run_menu(menu_dict):
 def run_cli():
     dm = DataManager()
     llm = LLMClient()
-    rm = ReportManager()
 
     print("Welcome to Spend Analyzer (CLI Prototype)")
 
     def role_user():
         user_id = input("Enter your user id (e.g., alice): ").strip() or "user"
-        user_menu(dm, llm, rm, user_id)
+        user_menu(dm, llm, user_id)
         return None
 
     def role_admin():
@@ -71,201 +71,114 @@ def run_cli():
             print("Invalid choice. Try again.")
 
 
-def _get_duplicate_handling():
-    """Ask user how to handle duplicates"""
-    print("\nHow to handle duplicates?")
-    print("1) Skip (don't import duplicates)")
-    print("2) Replace (overwrite existing transactions)")
-    print("3) Allow (import anyway)")
-    choice = input("Choice (default: 1): ").strip() or "1"
-    if choice == "1":
-        return "skip"
-    elif choice == "2":
-        return "replace"
-    elif choice == "3":
-        return "allow"
-    else:
-        print("Invalid choice, using 'skip'")
-        return "skip"
-
 
 def files_menu(dm, user_id):
-    """Submenu for managing files"""
-
-    def upload_by_path():
-        path = input("Path to file: ").strip()
-        try:
-            duplicate_handling = _get_duplicate_handling()
-            result = dm.import_file(path, user_id, duplicate_handling=duplicate_handling)
-            imported = result.get("imported", 0)
-            skipped = result.get("skipped", 0)
-            replaced = result.get("replaced", 0)
-            print(f"Imported {imported}, Skipped {skipped}, Replaced {replaced} for user {user_id}.")
-        except Exception as e:
-            print("Error importing file:", e)
-        return None
-
-    def select_one_from_raw():
-        raw_dir = os.path.join(os.getcwd(), "data", "raw")
-        if not os.path.exists(raw_dir):
-            print("data/raw/ directory does not exist.")
-            return None
-        
-        files = [f for f in os.listdir(raw_dir) if os.path.isfile(os.path.join(raw_dir, f))]
-        if not files:
-            print("No files found in data/raw/")
-            return None
-        
-        print("\nFiles in data/raw/:")
-        for i, fname in enumerate(files, 1):
-            print(f"{i}) {fname}")
-        
-        choice = input("Select file number: ").strip()
-        try:
-            idx = int(choice) - 1
-            if 0 <= idx < len(files):
-                selected_file = os.path.join(raw_dir, files[idx])
-                try:
-                    duplicate_handling = _get_duplicate_handling()
-                    result = dm.import_file(selected_file, user_id, duplicate_handling=duplicate_handling)
-                    imported = result.get("imported", 0)
-                    skipped = result.get("skipped", 0)
-                    replaced = result.get("replaced", 0)
-                    print(f"Imported {imported}, Skipped {skipped}, Replaced {replaced} from {files[idx]}.")
-                except Exception as e:
-                    print(f"Error importing {files[idx]}:", e)
-            else:
-                print("Invalid selection.")
-        except ValueError:
-            print("Invalid input.")
-        return None
-
-    def select_all_from_raw():
-        duplicate_handling = _get_duplicate_handling()
-        results = dm.import_all_from_raw(user_id, duplicate_handling=duplicate_handling)
-        if not results:
-            print("No files found in data/raw/")
-            return None
-        print("\nImport results:")
-        total_imported = 0
-        total_skipped = 0
-        total_replaced = 0
-        for fname, res in results.items():
-            if isinstance(res, dict):
-                imported = res.get("imported", 0)
-                skipped = res.get("skipped", 0)
-                replaced = res.get("replaced", 0)
-                total_imported += imported
-                total_skipped += skipped
-                total_replaced += replaced
-                print(f"{fname}: imported={imported}, skipped={skipped}, replaced={replaced}")
-            else:
-                print(f"{fname}: {res}")
-        print(f"\nTotal: imported={total_imported}, skipped={total_skipped}, replaced={total_replaced}")
-        return None
-
+    files_manager = FilesManager(dm)
     menu = {
-        "1": ("Give a file path", upload_by_path),
-        "2": ("Select one from raw data", select_one_from_raw),
-        "3": ("Select all from raw data", select_all_from_raw),
+        "1": ("Upload single receipt", lambda: _persist_and_report(files_manager.upload_single_receipt(user_id), dm)),
+        "2": ("Select one from raw data", lambda: files_manager.select_one_from_raw(user_id)),
+        "3": ("Select all from raw data", lambda: files_manager.select_all_from_raw(user_id)),
         "4": ("Back", lambda: "back"),
     }
-
+    def _persist_and_report(txs, dm):
+        if not txs:
+            print("No transactions created.")
+            return
+        if hasattr(dm, "transactions") and isinstance(dm.transactions, list):
+            dm.transactions.extend(txs)
+            print(f"Appended {len(txs)} transactions to in-memory store.")
+        else:
+            print("Could not persist transactions: DataManager has no supported API.")
     _run_menu(menu)
 
 
-def user_menu(dm, llm, rm, user_id):
+def user_menu(dm, llm, user_id):
     """User menu with main options"""
 
+
     def files_option():
-        files_menu(dm, user_id)
-        return None
+        return files_menu(dm, user_id)
 
+    llm_menu = LLMMenu(llm, dm)
     def ask_llm():
-        print("Entering LLM chat. Type 'exit' or 'back' to return to the menu.")
-        messages = []
-        context = dm.get_transactions_by_user(user_id)
-        context_included = False
-        
-        while True:
-            try:
-                q = input("You: ").strip()
-            except (EOFError, KeyboardInterrupt):
-                print()
-                break
-            if not q:
-                continue
-            if q.lower() in ("exit", "back", "quit"):
-                break
-
-            # Include transaction context in the first message if using an agent
-            if not context_included and getattr(llm, "agent_id", None) and context:
-                ctx_snippet = json.dumps(context[:200], default=str)
-                full_content = f"Context (my transactions):\n{ctx_snippet}\n\nMy question:\n{q}"
-                context_included = True
-            else:
-                full_content = q
-            
-            # Add user message
-            messages.append({"role": "user", "content": full_content})
-
-            # If an agent is configured, use the agent conversations endpoint with full message history
-            if getattr(llm, "agent_id", None):
-                res = llm.start_agent_conversation(inputs=messages)
-                # Handle error dicts
-                if isinstance(res, dict) and res.get("error"):
-                    body = res.get("body")
-                    print("Agent error:", res.get("error"), "", body if body else "")
-                    # Do not append assistant message on error
-                    continue
-
-                # Try to extract assistant text from common response shapes
-                assistant_text = None
-                if isinstance(res, dict):
-                    if "outputs" in res and isinstance(res["outputs"], list) and res["outputs"]:
-                        out = res["outputs"][0]
-                        # content may be a string or list
-                        content = out.get("content") if isinstance(out, dict) else None
-                        if isinstance(content, list):
-                            texts = [c.get("text") for c in content if isinstance(c, dict) and c.get("text")]
-                            assistant_text = "\n".join(t for t in texts if t)
-                        elif isinstance(content, str):
-                            assistant_text = content
-                    elif "results" in res and isinstance(res["results"], list) and res["results"]:
-                        first = res["results"][0]
-                        contents = first.get("content") or []
-                        if isinstance(contents, list):
-                            texts = [c.get("text") for c in contents if isinstance(c, dict) and c.get("text")]
-                            assistant_text = "\n".join(t for t in texts if t)
-                        elif isinstance(contents, str):
-                            assistant_text = contents
-
-                if assistant_text is None:
-                    # Fallback to stringifying the whole response
-                    try:
-                        assistant_text = json.dumps(res)
-                    except Exception:
-                        assistant_text = str(res)
-
-                print("Assistant:", assistant_text)
-                messages.append({"role": "assistant", "content": assistant_text})
-            else:
-                # Non-agent flow uses llm.ask which can accept a context list of transactions
-                context = dm.get_transactions_by_user(user_id)
-                resp = llm.ask(q, context=context)
-                print("Assistant:\n", resp)
-
-        return None
+        return llm_menu.ask_llm(user_id)
 
     def generate_reports():
-        print("Available reports: 1) spending_by_store 2) top_items")
-        r = input("Choose report: ")
-        report = rm.generate_report(r, dm, user_id)
-        if report:
-            path = rm.save_report(report, user_id, r)
-            print(f"Report saved to {path}")
+        # Load recommendations and let the user choose a category to view
+        rec_file = os.path.join(os.getcwd(), "reports", "recommendations.json")
+        if not os.path.exists(rec_file):
+            print("No recommendations found (reports/recommendations.json missing).")
+            return None
+
+        try:
+            with open(rec_file, "r", encoding="utf-8") as f:
+                recs = json.load(f)
+        except Exception as e:
+            print(f"Error reading recommendations: {e}")
+            return None
+
+        # Group by category
+        grouped = {}
+        for r in recs:
+            cat = r.get("category", "Uncategorized")
+            grouped.setdefault(cat, []).append(r)
+
+        categories = sorted(grouped.keys())
+        total_count = len(recs)
+        print("\nView Recommendations:\n")
+        print(f"0) All ({total_count})")
+        for i, cat in enumerate(categories, 1):
+            print(f"{i}) {cat} ({len(grouped[cat])})")
+
+        choice = input("Select category number (default 0): ").strip() or "0"
+        try:
+            idx = int(choice)
+        except Exception:
+            idx = 0
+
+        if idx == 0:
+            selected_items = recs
+            header = f"All Recommendations ({len(selected_items)})"
+            selected_cat = None
+        elif 1 <= idx <= len(categories):
+            selected_cat = categories[idx - 1]
+            selected_items = grouped[selected_cat]
+            header = f"{selected_cat} ({len(selected_items)})"
         else:
-            print("Unknown report")
+            print("Invalid selection.")
+            return None
+
+        import textwrap
+
+        print("\n" + "=" * 60)
+        print(header)
+        print("=" * 60 + "\n")
+
+        for i, item in enumerate(selected_items, 1):
+            date = item.get("date") or item.get("saved_at", "")
+            q = item.get("question", "")
+            resp = item.get("response", "") or ""
+
+            print(f"{i}) Date: {date}")
+            print(f"   Question: {q}")
+            print("   Advice:")
+
+            # Special, cleaner formatting for Budget Tips: enumerate lines if present
+            if (selected_cat == "Budget Tips") or (item.get("category") == "Budget Tips"):
+                lines = [ln.strip() for ln in resp.splitlines() if ln.strip()]
+                if lines:
+                    for j, ln in enumerate(lines, 1):
+                        wrapped = textwrap.fill(ln, width=76, initial_indent="      ", subsequent_indent="      ")
+                        print(f"     {j}. {wrapped.lstrip()}")
+                else:
+                    wrapped = textwrap.fill(resp, width=76, initial_indent="      ", subsequent_indent="      ")
+                    print(wrapped)
+            else:
+                wrapped = textwrap.fill(resp, width=76, initial_indent="      ", subsequent_indent="      ")
+                print(wrapped)
+
+            print("-" * 60)
+
         return None
 
     def transactions_option():
@@ -294,7 +207,7 @@ def list_menu(dm, user_id):
 
     def show_transactions():
         txs = dm.get_transactions_by_user(user_id)
-        print(f"Transactions ({len(txs)})")
+        print(f"Transactions ({len(txs)}) this is for testing to show data")
         for t in txs[:200]:
             print(t)
         return None
@@ -320,12 +233,15 @@ def list_menu(dm, user_id):
         grouping_field = "orderno"
         receipts = defaultdict(lambda: {
             "count": 0, "store": None, "date": None, 
-            "line_items": [], "total_before": 0.0, "total_after": 0.0
+            "line_items": [], "total_before": 0.0, "total_after": 0.0,
+            "has_receipt_total": False
         })
 
         for t in txs:
             rid = t.get(grouping_field) or t.get("transaction_id")
-            receipts[rid]["count"] += 1
+            # If this transaction is a receipt-level total marker, record it separately
+            is_receipt_total = (str(t.get("item_name") or "").upper() == "RECEIPT_TOTAL")
+
             receipts[rid]["store"] = receipts[rid]["store"] or t.get("store")
             receipts[rid]["store_source"] = receipts[rid].get("store_source") or t.get("source")
             receipts[rid]["date"] = receipts[rid]["date"] or t.get("date")
@@ -335,17 +251,25 @@ def list_menu(dm, user_id):
             total = _safe_float(t.get("total_price") or t.get("customerloyamt") or 
                               t.get("TransPrice") or (unit * qty))
 
-            receipts[rid]["total_before"] += unit * qty
-            receipts[rid]["total_after"] += total
-            receipts[rid]["line_items"].append({
-                "item": t.get("item_name") or t.get("purchasedescription") or t.get("Description"),
-                "upc": t.get("product_upc") or t.get("UPC"),
-                "qty": qty,
-                "unit": unit,
-                "total": total,
-                "store": t.get("store"),
-                "store_source": t.get("source"),
-            })
+            if is_receipt_total:
+                # Prefer the explicit receipt total when present; don't append as a line item
+                receipts[rid]["total_after"] = total
+                receipts[rid]["has_receipt_total"] = True
+            else:
+                receipts[rid]["count"] += 1
+                receipts[rid]["total_before"] += unit * qty
+                # Only add to total_after when no explicit receipt total exists
+                if not receipts[rid]["has_receipt_total"]:
+                    receipts[rid]["total_after"] += total
+                receipts[rid]["line_items"].append({
+                    "item": t.get("item_name") or t.get("purchasedescription") or t.get("Description"),
+                    "upc": t.get("product_upc") or t.get("UPC"),
+                    "qty": qty,
+                    "unit": unit,
+                    "total": total,
+                    "store": t.get("store"),
+                    "store_source": t.get("source"),
+                })
 
         print(f"Receipts ({len(receipts)}):")
         for rid, info in list(receipts.items())[:50]:
@@ -362,7 +286,7 @@ def list_menu(dm, user_id):
                       f"total_before={info['total_before']:.2f}, total_after={info['total_after']:.2f}")
                 for li in info['line_items']:
                     print(f"  - {li['item']} (upc={li['upc']}) qty={li['qty']} unit={li['unit']:.2f} "
-                          f"total={li['total']:.2f} store={li.get('store')} (source={li.get('store_source')})")
+                          f"total={li['total']:.2f})")
         elif choice_detail:
             rid = choice_detail
             if rid in receipts:
@@ -373,7 +297,7 @@ def list_menu(dm, user_id):
                       f"total_before={info['total_before']:.2f}, total_after={info['total_after']:.2f}")
                 for li in info['line_items']:
                     print(f"  - {li['item']} (upc={li['upc']}) qty={li['qty']} unit={li['unit']:.2f} "
-                          f"total={li['total']:.2f} store={li.get('store')} (source={li.get('store_source')})")
+                          f"total={li['total']:.2f})")
             else:
                 print("Receipt id not found in the current user's data.")
         return None
@@ -383,6 +307,9 @@ def list_menu(dm, user_id):
         line_items = []
         for t in txs:
             name = t.get("item_name") or t.get("purchasedescription") or t.get("Description")
+            # Skip receipt-level total markers from line item listing
+            if str(name).upper() == "RECEIPT_TOTAL":
+                continue
             if not name:
                 continue
             rid = t.get("orderno") or t.get("transaction_id")
@@ -434,18 +361,17 @@ def list_menu(dm, user_id):
         return None
 
     menu = {
-        "1": ("Transactions (raw upload)", show_transactions),
-        "2": ("Common stores (in-memory)", show_stores),
-        "3": ("Receipts summary (grouped by orderno)", show_receipts),
-        "4": ("Line items summary (top products)", show_line_items),
-        "5": ("Show DB stores/receipts/line_items (if DB available)", show_db),
-        "6": ("Back", lambda: "back"),
+        "1": ("Common stores (in-memory)", show_stores),
+        "2": ("Receipts summary (grouped by orderno)", show_receipts),
+        "3": ("Line items summary (top products)", show_line_items),
+        "4": ("Show DB stores/receipts/line_items (if DB available)", show_db),
+        "5": ("Back", lambda: "back"),
     }
 
     _run_menu(menu)
 
 
-def admin_menu(dm, llm, rm):
+def admin_menu(dm, llm):
     """Admin menu for managing transactions and reports"""
     from . import migrate as migrate_module
 

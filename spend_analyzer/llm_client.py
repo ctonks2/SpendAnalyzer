@@ -14,35 +14,26 @@ DEFAULT_MISTRAL_AGENT_CONV_ENDPOINT = "https://api.mistral.ai/v1/conversations"
 
 class LLMClient:
     def __init__(self):
-        # Prefer environment variable, fall back to configs/llm.yaml
-        self.api_key = os.getenv("MISTRAL_API_KEY")
-        if not self.api_key:
+        # Load configuration (env vars take precedence)
+        cfg = {}
+        if os.path.exists(CONFIG_PATH):
             try:
-                if os.path.exists(CONFIG_PATH):
-                    with open(CONFIG_PATH, "r", encoding="utf-8") as fh:
-                        cfg = yaml.safe_load(fh) or {}
-                        # support either 'mistral_api_key' or generic 'api_key'
-                        self.api_key = cfg.get("mistral_api_key") or cfg.get("api_key")
-            except Exception:
-                self.api_key = None
-        self.mock = self.api_key is None
-        # set defaults for model/endpoint and agent conversation endpoint
-        self.endpoint = DEFAULT_MISTRAL_ENDPOINT
-        self.model = DEFAULT_MODEL
-        self.agent_conv_endpoint = DEFAULT_MISTRAL_AGENT_CONV_ENDPOINT
-        # optional agent id
-        self.agent_id = os.getenv("MISTRAL_AGENT_ID")
-        # try to load overrides from config
-        try:
-            if os.path.exists(CONFIG_PATH):
                 with open(CONFIG_PATH, "r", encoding="utf-8") as fh:
                     cfg = yaml.safe_load(fh) or {}
-                    self.endpoint = cfg.get("mistral_endpoint") or self.endpoint
-                    self.model = cfg.get("model") or self.model
-                    self.agent_conv_endpoint = cfg.get("mistral_agent_conv_endpoint") or self.agent_conv_endpoint
-                    self.agent_id = cfg.get("mistral_agent_id") or self.agent_id
-        except Exception:
-            pass
+            except Exception:
+                cfg = {}
+
+        # Prefer environment variable, fall back to configs/llm.yaml
+        self.api_key = os.getenv("MISTRAL_API_KEY") or cfg.get("mistral_api_key") or cfg.get("api_key")
+        self.mock = self.api_key is None
+
+        # set defaults for model/endpoint and agent conversation endpoint, allow config override
+        self.endpoint = cfg.get("mistral_endpoint") or DEFAULT_MISTRAL_ENDPOINT
+        self.model = cfg.get("model") or DEFAULT_MODEL
+        self.agent_conv_endpoint = cfg.get("mistral_agent_conv_endpoint") or DEFAULT_MISTRAL_AGENT_CONV_ENDPOINT
+
+        # optional agent id (env overrides config)
+        self.agent_id = os.getenv("MISTRAL_AGENT_ID") or cfg.get("mistral_agent_id")
 
     def set_api_key(self, key, persist=False):
         """Set the API key for this client. If persist=True, save to configs/llm.yaml."""
@@ -50,41 +41,31 @@ class LLMClient:
         self.mock = False if key else True
         os.environ["MISTRAL_API_KEY"] = key or ""
         if persist:
-            try:
-                os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
-                # merge with existing config if present
-                cfg = {}
-                if os.path.exists(CONFIG_PATH):
-                    try:
-                        with open(CONFIG_PATH, "r", encoding="utf-8") as rfh:
-                            cfg = yaml.safe_load(rfh) or {}
-                    except Exception:
-                        cfg = {}
-                cfg["mistral_api_key"] = key
-                with open(CONFIG_PATH, "w", encoding="utf-8") as fh:
-                    yaml.safe_dump(cfg, fh)
-            except Exception:
-                # Don't crash the app if writing fails; caller can handle messaging
-                pass
+            self._write_config({"mistral_api_key": key})
 
     def set_agent_id(self, agent_id, persist=False):
         """Set the Mistral agent id and optionally persist to configs/llm.yaml"""
         self.agent_id = agent_id
         if persist:
-            try:
-                os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
-                cfg = {}
-                if os.path.exists(CONFIG_PATH):
-                    try:
-                        with open(CONFIG_PATH, "r", encoding="utf-8") as rfh:
-                            cfg = yaml.safe_load(rfh) or {}
-                    except Exception:
-                        cfg = {}
-                cfg["mistral_agent_id"] = agent_id
-                with open(CONFIG_PATH, "w", encoding="utf-8") as fh:
-                    yaml.safe_dump(cfg, fh)
-            except Exception:
-                pass
+            self._write_config({"mistral_agent_id": agent_id})
+
+    def _write_config(self, updates: dict):
+        """Merge updates into the YAML config file at CONFIG_PATH."""
+        try:
+            os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+            cfg = {}
+            if os.path.exists(CONFIG_PATH):
+                try:
+                    with open(CONFIG_PATH, "r", encoding="utf-8") as rfh:
+                        cfg = yaml.safe_load(rfh) or {}
+                except Exception:
+                    cfg = {}
+            cfg.update(updates)
+            with open(CONFIG_PATH, "w", encoding="utf-8") as fh:
+                yaml.safe_dump(cfg, fh)
+        except Exception:
+            # best-effort only
+            pass
 
     def start_agent_conversation(self, agent_id=None, inputs=None):
         """Start a conversation with a Mistral agent using the (beta) conversations API.

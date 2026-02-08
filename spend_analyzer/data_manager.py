@@ -102,22 +102,24 @@ class DataManager:
     def _add_transaction(self, tx, duplicate_handling="skip"):
         """Add a transaction with duplicate handling.
         
-        Returns: True if added, False if skipped
+        Returns: (added: bool, replaced: bool)
         """
         h = self._compute_transaction_hash(tx)
+        replaced = False
         if h in self.transaction_hashes:
-            # Duplicate detected
             if duplicate_handling == "skip":
-                return False
+                return False, False
             elif duplicate_handling == "replace":
-                # Find and remove the old transaction
+                # remove old matching transactions
                 self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
-        
+                # we'll add the new one below
+                replaced = True
+
         # Add the new transaction
         self.transactions.append(tx)
         if h:
             self.transaction_hashes.add(h)
-        return True
+        return True, replaced
 
     def _import_csv(self, path, user_id, duplicate_handling="skip"):
         imported = 0
@@ -130,18 +132,13 @@ class DataManager:
                 # annotate source (first token of filename) so downstream logic can use it
                 row["source"] = source
                 tx = self._normalize_row(row, user_id)
-                h = self._compute_transaction_hash(tx)
-                if h in self.transaction_hashes:
-                    if duplicate_handling == "skip":
-                        skipped += 1
-                        continue
-                    elif duplicate_handling == "replace":
-                        self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
-                        replaced += 1
-                self.transactions.append(tx)
-                if h:
-                    self.transaction_hashes.add(h)
-                imported += 1
+                added, rep = self._add_transaction(tx, duplicate_handling=duplicate_handling)
+                if added:
+                    imported += 1
+                else:
+                    skipped += 1
+                if rep:
+                    replaced += 1
         return {"imported": imported, "skipped": skipped, "replaced": replaced}
 
     def _collect_items_from_data(self, data):
@@ -228,18 +225,13 @@ class DataManager:
             if isinstance(row, dict):
                 row["source"] = source
             tx = self._normalize_row(row, user_id)
-            h = self._compute_transaction_hash(tx)
-            if h in self.transaction_hashes:
-                if duplicate_handling == "skip":
-                    skipped += 1
-                    continue
-                elif duplicate_handling == "replace":
-                    self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
-                    replaced += 1
-            self.transactions.append(tx)
-            if h:
-                self.transaction_hashes.add(h)
-            imported += 1
+            added, rep = self._add_transaction(tx, duplicate_handling=duplicate_handling)
+            if added:
+                imported += 1
+            else:
+                skipped += 1
+            if rep:
+                replaced += 1
         return {"imported": imported, "skipped": skipped, "replaced": replaced}
 
     def _import_xlsx(self, path, user_id, duplicate_handling="skip"):
@@ -309,32 +301,22 @@ class DataManager:
                 except Exception:
                     # if conversion fails, skip this receipt total
                     continue
-                h = self._compute_transaction_hash(tx)
-                if h in self.transaction_hashes:
-                    if duplicate_handling == "skip":
-                        skipped += 1
-                        continue
-                    elif duplicate_handling == "replace":
-                        self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
-                        replaced += 1
-                self.transactions.append(tx)
-                if h:
-                    self.transaction_hashes.add(h)
-                imported += 1
+                added, rep = self._add_transaction(tx, duplicate_handling=duplicate_handling)
+                if added:
+                    imported += 1
+                else:
+                    skipped += 1
+                if rep:
+                    replaced += 1
             else:
                 tx = self._normalize_row(rowdict, user_id)
-                h = self._compute_transaction_hash(tx)
-                if h in self.transaction_hashes:
-                    if duplicate_handling == "skip":
-                        skipped += 1
-                        continue
-                    elif duplicate_handling == "replace":
-                        self.transactions = [t for t in self.transactions if self._compute_transaction_hash(t) != h]
-                        replaced += 1
-                self.transactions.append(tx)
-                if h:
-                    self.transaction_hashes.add(h)
-                imported += 1
+                added, rep = self._add_transaction(tx, duplicate_handling=duplicate_handling)
+                if added:
+                    imported += 1
+                else:
+                    skipped += 1
+                if rep:
+                    replaced += 1
         return {"imported": imported, "skipped": skipped, "replaced": replaced}
 
     def _import_pdf(self, path, user_id, duplicate_handling="skip"):
@@ -438,19 +420,7 @@ class DataManager:
         if "source" in row and row.get("source") not in (None, ""):
             normalized["source"] = row.get("source")
 
-        # If there's no explicit orderno, fall back to using a combination of
-        # date and store as the order identifier. This helps sources like
-        # Costco which may omit an order number, while reducing accidental
-        # merging of different receipts on the same date.
-        if not normalized.get("orderno") and normalized.get("date"):
-            date_str = str(normalized.get("date"))
-            store_str = str(normalized.get("store") or "").strip()
-            if store_str:
-                # make a safe store token (replace whitespace with underscore)
-                store_safe = re.sub(r"\s+", "_", store_str)
-                normalized["orderno"] = f"{date_str}-{store_safe}"
-            else:
-                normalized["orderno"] = date_str
+        # (orderno construction moved later, after date parsing and better store-id detection)
 
         # If this came from Smiths or Maceys, their 'store' field often contains a numeric store id; keep digits only
         if normalized.get("source"):
@@ -462,6 +432,53 @@ class DataManager:
                     if digits:
                         # only replace when digits are present; otherwise keep original
                         normalized["store"] = digits
+
+        # Attempt to parse date
+        d = normalized.get("date") or row.get("date") or row.get("purchase_date")
+        if d:
+            try:
+                dt = datetime.fromisoformat(d)
+                # If time is midnight, prefer date-only string (YYYY-MM-DD)
+                if dt.hour == 0 and dt.minute == 0 and dt.second == 0:
+                    normalized["date"] = dt.date().isoformat()
+                else:
+                    normalized["date"] = dt.isoformat()
+            except Exception:
+                normalized["date"] = str(d)
+
+        # Determine a canonical numeric store id when possible. Check common fields first,
+        # then fall back to digits found in the `store` or `source` fields.
+        store_number = None
+        for candidate in ("store_number", "storeid", "store_id", "StoreID", "storeNo", "store_no"):
+            if candidate in row and row.get(candidate) not in (None, ""):
+                store_number = str(row.get(candidate))
+                break
+        if not store_number and normalized.get("store") not in (None, ""):
+            s = str(normalized.get("store"))
+            digits = "".join(ch for ch in s if ch.isdigit())
+            if digits:
+                store_number = digits
+        if not store_number and normalized.get("source") not in (None, ""):
+            s = str(normalized.get("source"))
+            digits = "".join(ch for ch in s if ch.isdigit())
+            if digits:
+                store_number = digits
+
+        # If there's no explicit orderno, build one using store_number+date when possible,
+        # otherwise fall back to date+store_name or date alone.
+        if not normalized.get("orderno") and normalized.get("date"):
+            date_str = str(normalized.get("date"))
+            if store_number:
+                normalized["orderno"] = f"{store_number}.{date_str}"
+                # ensure the canonical store id is stored in the `store` field
+                normalized["store"] = store_number
+            else:
+                store_str = str(normalized.get("store") or "").strip()
+                if store_str:
+                    store_safe = re.sub(r"\s+", "_", store_str)
+                    normalized["orderno"] = f"{date_str}-{store_safe}"
+                else:
+                    normalized["orderno"] = date_str
 
         # Ensure ordner/product_upc values are strings when present
         if normalized.get("orderno") not in (None, ""):

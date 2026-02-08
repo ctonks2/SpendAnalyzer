@@ -1,6 +1,5 @@
 """Migration helper: persist in-memory transactions into a SQLite DB using SQLAlchemy"""
 import uuid
-from pathlib import Path
 from datetime import datetime
 from .db import get_engine, get_session, Base
 from .models import Store, Receipt, LineItem
