@@ -1,5 +1,6 @@
 """Simple CLI for Spend Analyzer prototype"""
 import os
+import json
 from collections import Counter, defaultdict
 from .data_manager import DataManager
 from .llm_client import LLMClient
@@ -45,40 +46,17 @@ def run_cli():
         return None
 
     def role_admin():
-        admin_password = os.getenv("SA_ADMIN_PASSWORD", "adminpass")
-        pwd = input("Admin password: ")
-        if pwd == admin_password:
-            admin_menu(dm, llm, rm)
-        else:
-            print("Invalid password.")
+        print("Admin menu is currently disabled.")
         return None
 
     def role_exit():
         print("Goodbye!")
         return "exit"
 
-    def set_llm_api_key():
-        key = input("Enter LLM API key (leave blank to unset): ").strip()
-        if not key:
-            confirm = input("Clear stored API key? (y/N): ").strip().lower()
-            if confirm == "y":
-                llm.set_api_key(None, persist=True)
-                print("API key cleared from session and config.")
-            else:
-                print("No changes made.")
-            return None
-
-        persist = input("Persist API key to configs/llm.yaml? (Y/n): ").strip().lower() or "y"
-        persist_flag = persist != "n"
-        llm.set_api_key(key, persist=persist_flag)
-        print("API key set" + (" and persisted." if persist_flag else "."))
-        return None
-
     menu = {
         "1": ("User", role_user),
         "2": ("Admin", role_admin),
-        "3": ("Set LLM API Key", set_llm_api_key),
-        "4": ("Exit", role_exit),
+        "3": ("Exit", role_exit),
     }
 
     while True:
@@ -204,10 +182,79 @@ def user_menu(dm, llm, rm, user_id):
         return None
 
     def ask_llm():
-        q = input("Ask a question about your spending: ")
+        print("Entering LLM chat. Type 'exit' or 'back' to return to the menu.")
+        messages = []
         context = dm.get_transactions_by_user(user_id)
-        resp = llm.ask(q, context=context)
-        print("LLM Response:\n", resp)
+        context_included = False
+        
+        while True:
+            try:
+                q = input("You: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+            if not q:
+                continue
+            if q.lower() in ("exit", "back", "quit"):
+                break
+
+            # Include transaction context in the first message if using an agent
+            if not context_included and getattr(llm, "agent_id", None) and context:
+                ctx_snippet = json.dumps(context[:200], default=str)
+                full_content = f"Context (my transactions):\n{ctx_snippet}\n\nMy question:\n{q}"
+                context_included = True
+            else:
+                full_content = q
+            
+            # Add user message
+            messages.append({"role": "user", "content": full_content})
+
+            # If an agent is configured, use the agent conversations endpoint with full message history
+            if getattr(llm, "agent_id", None):
+                res = llm.start_agent_conversation(inputs=messages)
+                # Handle error dicts
+                if isinstance(res, dict) and res.get("error"):
+                    body = res.get("body")
+                    print("Agent error:", res.get("error"), "", body if body else "")
+                    # Do not append assistant message on error
+                    continue
+
+                # Try to extract assistant text from common response shapes
+                assistant_text = None
+                if isinstance(res, dict):
+                    if "outputs" in res and isinstance(res["outputs"], list) and res["outputs"]:
+                        out = res["outputs"][0]
+                        # content may be a string or list
+                        content = out.get("content") if isinstance(out, dict) else None
+                        if isinstance(content, list):
+                            texts = [c.get("text") for c in content if isinstance(c, dict) and c.get("text")]
+                            assistant_text = "\n".join(t for t in texts if t)
+                        elif isinstance(content, str):
+                            assistant_text = content
+                    elif "results" in res and isinstance(res["results"], list) and res["results"]:
+                        first = res["results"][0]
+                        contents = first.get("content") or []
+                        if isinstance(contents, list):
+                            texts = [c.get("text") for c in contents if isinstance(c, dict) and c.get("text")]
+                            assistant_text = "\n".join(t for t in texts if t)
+                        elif isinstance(contents, str):
+                            assistant_text = contents
+
+                if assistant_text is None:
+                    # Fallback to stringifying the whole response
+                    try:
+                        assistant_text = json.dumps(res)
+                    except Exception:
+                        assistant_text = str(res)
+
+                print("Assistant:", assistant_text)
+                messages.append({"role": "assistant", "content": assistant_text})
+            else:
+                # Non-agent flow uses llm.ask which can accept a context list of transactions
+                context = dm.get_transactions_by_user(user_id)
+                resp = llm.ask(q, context=context)
+                print("Assistant:\n", resp)
+
         return None
 
     def generate_reports():
@@ -226,7 +273,7 @@ def user_menu(dm, llm, rm, user_id):
         return None
 
     menu = {
-        "1": ("Files", files_option),
+        "1": ("Upload Files", files_option),
         "2": ("Ask LLM", ask_llm),
         "3": ("Generate Reports", generate_reports),
         "4": ("Transactions Menu", transactions_option),
@@ -387,7 +434,7 @@ def list_menu(dm, user_id):
         return None
 
     menu = {
-        "1": ("Transactions (raw)", show_transactions),
+        "1": ("Transactions (raw upload)", show_transactions),
         "2": ("Common stores (in-memory)", show_stores),
         "3": ("Receipts summary (grouped by orderno)", show_receipts),
         "4": ("Line items summary (top products)", show_line_items),
