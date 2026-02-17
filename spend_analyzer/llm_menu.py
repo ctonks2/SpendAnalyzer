@@ -8,6 +8,28 @@ class LLMMenu:
         self.llm = llm_client
         self.dm = dm
 
+    def _rec_file(self, user_id):
+        rec_dir = os.path.join(os.getcwd(), "reports")
+        os.makedirs(rec_dir, exist_ok=True)
+        return os.path.join(rec_dir, f"{user_id}_Recommendations.json")
+
+    def load_recommendations(self, user_id):
+        rec_file = self._rec_file(user_id)
+        if not os.path.exists(rec_file):
+            return [], rec_file
+        try:
+            with open(rec_file, "r", encoding="utf-8") as f:
+                recs = json.load(f)
+            if isinstance(recs, list):
+                return recs, rec_file
+        except Exception:
+            pass
+        return [], rec_file
+
+    def has_recommendations(self, user_id):
+        recs, _ = self.load_recommendations(user_id)
+        return len(recs) > 0
+
     def ask_llm(self, user_id):
         print("Entering LLM chat. Type 'exit' or 'back' to return to the menu.")
         messages = []
@@ -99,9 +121,7 @@ class LLMMenu:
         date_str = input("Date for this recommendation (YYYY-MM-DD, default: today): ").strip()
         if not date_str:
             date_str = datetime.now().strftime("%Y-%m-%d")
-        rec_dir = os.path.join(os.getcwd(), "reports")
-        os.makedirs(rec_dir, exist_ok=True)
-        rec_file = os.path.join(rec_dir, "recommendations.json")
+        rec_file = self._rec_file(user_id)
         recommendation = {
             "user_id": user_id,
             "date": date_str,
@@ -111,16 +131,51 @@ class LLMMenu:
             "saved_at": datetime.now().isoformat()
         }
         try:
-            recs = []
-            if os.path.exists(rec_file):
-                try:
-                    with open(rec_file, "r", encoding="utf-8") as f:
-                        recs = json.load(f)
-                except Exception:
-                    recs = []
+            recs, _ = self.load_recommendations(user_id)
             recs.append(recommendation)
             with open(rec_file, "w", encoding="utf-8") as f:
                 json.dump(recs, f, indent=2, default=str)
             print(f"✓ Recommendation saved to {rec_file}")
         except Exception as e:
             print(f"Error saving recommendation: {e}")
+
+    def delete_recommendation(self, user_id):
+        recs, rec_file = self.load_recommendations(user_id)
+        if not recs:
+            print("No recommendations found.")
+            return None
+
+        print("\nSaved Recommendations:")
+        for i, item in enumerate(recs, 1):
+            date = item.get("date") or item.get("saved_at", "")
+            category = item.get("category", "Other")
+            question = (item.get("question") or "").strip()
+            question = question[:60] + ("..." if len(question) > 60 else "")
+            print(f"{i}) {date} | {category} | {question}")
+
+        choice = input("Delete which? (number, 'all', or Enter to cancel): ").strip().lower()
+        if not choice:
+            return None
+        if choice == "all":
+            confirm = input("Delete all recommendations? (y/N): ").strip().lower()
+            if confirm != "y":
+                return None
+            recs = []
+        else:
+            try:
+                idx = int(choice) - 1
+            except Exception:
+                print("Invalid choice.")
+                return None
+            if idx < 0 or idx >= len(recs):
+                print("Invalid choice.")
+                return None
+            recs.pop(idx)
+
+        try:
+            with open(rec_file, "w", encoding="utf-8") as f:
+                json.dump(recs, f, indent=2, default=str)
+            print("Recommendation(s) deleted.")
+        except Exception as e:
+            print(f"Error deleting recommendation: {e}")
+        return None

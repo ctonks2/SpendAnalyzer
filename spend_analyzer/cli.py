@@ -42,6 +42,7 @@ def run_cli():
 
     def role_user():
         user_id = input("Enter your user id (e.g., alice): ").strip() or "user"
+        dm.load_user_data(user_id)
         user_menu(dm, llm, user_id)
         return None
 
@@ -75,27 +76,28 @@ def run_cli():
 def files_menu(dm, user_id):
     files_manager = FilesManager(dm)
     menu = {
-        "1": ("Upload single receipt", lambda: _persist_and_report(files_manager.upload_single_receipt(user_id), dm)),
+        "1": ("Upload single receipt", lambda: _persist_and_report(files_manager.upload_single_receipt(user_id), dm, user_id)),
         "2": ("Select one from raw data", lambda: files_manager.select_one_from_raw(user_id)),
         "3": ("Select all from raw data", lambda: files_manager.select_all_from_raw(user_id)),
-        "4": ("Back", lambda: "back"),
+        "4": ("Delete my stored receipts", lambda: _delete_user_data(dm, user_id)),
+        "5": ("Back", lambda: "back"),
     }
-    def _persist_and_report(txs, dm):
+    def _persist_and_report(txs, dm, user_id):
         if not txs:
             print("No transactions created.")
             return
-        if hasattr(dm, "transactions") and isinstance(dm.transactions, list):
-            dm.transactions.extend(txs)
-            print(f"Appended {len(txs)} transactions to in-memory store.")
-        else:
-            print("Could not persist transactions: DataManager has no supported API.")
+        res = dm.add_transactions(user_id, txs)
+        print(f"Appended {res.get('imported', 0)} transactions to your saved data.")
+    def _delete_user_data(dm, user_id):
+        confirm = input("Delete your stored receipts and upload history? (y/N): ").strip().lower()
+        if confirm == "y":
+            dm.delete_user_data(user_id, delete_upload_history=True)
+            print("Deleted stored receipts and upload history for this user.")
     _run_menu(menu)
 
 
 def user_menu(dm, llm, user_id):
     """User menu with main options"""
-
-
     def files_option():
         return files_menu(dm, user_id)
 
@@ -105,16 +107,9 @@ def user_menu(dm, llm, user_id):
 
     def generate_reports():
         # Load recommendations and let the user choose a category to view
-        rec_file = os.path.join(os.getcwd(), "reports", "recommendations.json")
-        if not os.path.exists(rec_file):
-            print("No recommendations found (reports/recommendations.json missing).")
-            return None
-
-        try:
-            with open(rec_file, "r", encoding="utf-8") as f:
-                recs = json.load(f)
-        except Exception as e:
-            print(f"Error reading recommendations: {e}")
+        recs, rec_file = llm_menu.load_recommendations(user_id)
+        if not recs:
+            print(f"No recommendations found ({rec_file} missing or empty).")
             return None
 
         # Group by category
@@ -185,15 +180,45 @@ def user_menu(dm, llm, user_id):
         list_menu(dm, user_id)
         return None
 
-    menu = {
-        "1": ("Upload Files", files_option),
-        "2": ("Ask LLM", ask_llm),
-        "3": ("Generate Reports", generate_reports),
-        "4": ("Transactions Menu", transactions_option),
-        "5": ("Back", lambda: "back"),
-    }
+    def delete_recommendations():
+        return llm_menu.delete_recommendation(user_id)
 
-    _run_menu(menu)
+    while True:
+        has_data = dm.has_user_data(user_id)
+        has_recs = llm_menu.has_recommendations(user_id)
+        menu = {
+            "1": ("Upload Files", files_option),
+            "2": ("Generate Reports", generate_reports),
+            "3": ("Transactions Menu", transactions_option),
+            "4": ("Back", lambda: "back"),
+        }
+        if has_data:
+            menu = {
+                "1": ("Upload Files", files_option),
+                "2": ("Ask LLM", ask_llm),
+                "3": ("Generate Reports", generate_reports),
+                "4": ("Transactions Menu", transactions_option),
+                "5": ("Back", lambda: "back"),
+            }
+            if has_recs:
+                menu = {
+                    "1": ("Upload Files", files_option),
+                    "2": ("Ask LLM", ask_llm),
+                    "3": ("Generate Reports", generate_reports),
+                    "4": ("Delete Recommendation", delete_recommendations),
+                    "5": ("Transactions Menu", transactions_option),
+                    "6": ("Back", lambda: "back"),
+                }
+
+        _show_menu(menu)
+        choice = input("Choice: ").strip()
+        if choice in menu:
+            _, handler = menu[choice]
+            result = handler()
+            if result == "back":
+                break
+        else:
+            print("Invalid choice. Try again.")
 
 
 def list_menu(dm, user_id):

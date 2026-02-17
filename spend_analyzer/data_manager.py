@@ -61,6 +61,112 @@ class DataManager:
             if h:
                 self.transaction_hashes.add(h)
 
+    def _rebuild_hashes(self):
+        self.transaction_hashes = set()
+        for tx in self.transactions:
+            h = self._compute_transaction_hash(tx)
+            if h:
+                self.transaction_hashes.add(h)
+
+    def _user_data_path(self, user_id):
+        base = os.path.join(os.getcwd(), "data", "normalized", "users")
+        os.makedirs(base, exist_ok=True)
+        return os.path.join(base, f"{user_id}.json")
+
+    def _user_uploads_path(self, user_id):
+        base = os.path.join(os.getcwd(), "data", "normalized", "usersHistory")
+        os.makedirs(base, exist_ok=True)
+        return os.path.join(base, f"{user_id}_uploads.json")
+
+    def has_user_data(self, user_id):
+        path = self._user_data_path(user_id)
+        if not os.path.exists(path):
+            return False
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            return isinstance(data, list) and len(data) > 0
+        except Exception:
+            return False
+
+    def load_user_data(self, user_id):
+        path = self._user_data_path(user_id)
+        # Remove any in-memory transactions for this user before loading
+        self.transactions = [t for t in self.transactions if t.get("user_id") != user_id]
+        if not os.path.exists(path):
+            self._rebuild_hashes()
+            return []
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            if not isinstance(data, list):
+                data = []
+        except Exception:
+            data = []
+        for tx in data:
+            if isinstance(tx, dict) and not tx.get("user_id"):
+                tx["user_id"] = user_id
+        self.transactions.extend([t for t in data if isinstance(t, dict)])
+        self._rebuild_hashes()
+        return data
+
+    def save_user_data(self, user_id):
+        path = self._user_data_path(user_id)
+        data = [t for t in self.transactions if t.get("user_id") == user_id]
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(data, fh, indent=2, default=str)
+        return path
+
+    def get_uploaded_filenames(self, user_id):
+        path = self._user_uploads_path(user_id)
+        if not os.path.exists(path):
+            return []
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            if isinstance(data, list):
+                return data
+        except Exception:
+            pass
+        return []
+
+    def add_uploaded_filename(self, user_id, filename):
+        path = self._user_uploads_path(user_id)
+        names = self.get_uploaded_filenames(user_id)
+        if filename not in names:
+            names.append(filename)
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(names, fh, indent=2)
+        return names
+
+    def delete_user_data(self, user_id, delete_upload_history=True):
+        data_path = self._user_data_path(user_id)
+        uploads_path = self._user_uploads_path(user_id)
+        if os.path.exists(data_path):
+            os.remove(data_path)
+        if delete_upload_history and os.path.exists(uploads_path):
+            os.remove(uploads_path)
+        self.transactions = [t for t in self.transactions if t.get("user_id") != user_id]
+        self._rebuild_hashes()
+
+    def add_transactions(self, user_id, txs, duplicate_handling="skip"):
+        imported = 0
+        skipped = 0
+        replaced = 0
+        for tx in txs or []:
+            if isinstance(tx, dict) and not tx.get("user_id"):
+                tx["user_id"] = user_id
+            added, rep = self._add_transaction(tx, duplicate_handling=duplicate_handling)
+            if added:
+                imported += 1
+            else:
+                skipped += 1
+            if rep:
+                replaced += 1
+        if imported or replaced or skipped:
+            self.save_user_data(user_id)
+        return {"imported": imported, "skipped": skipped, "replaced": replaced}
+
     def _compute_transaction_hash(self, tx):
         """Compute a hash from key transaction fields to detect duplicates."""
         import hashlib

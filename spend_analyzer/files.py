@@ -5,6 +5,16 @@ class FilesManager:
     def __init__(self, dm):
         self.dm = dm
 
+    def _print_upload_history(self, user_id):
+        names = self.dm.get_uploaded_filenames(user_id)
+        if not names:
+            print("No prior uploads found for this user.")
+            return []
+        print("Previously uploaded files:")
+        for name in names:
+            print(f"- {name}")
+        return names
+
     def upload_single_receipt(self, user_id):
         print("\nManual receipt entry")
         while True:
@@ -101,6 +111,7 @@ class FilesManager:
                 return datetime.today().date().isoformat()
 
     def select_one_from_raw(self, user_id):
+        self._print_upload_history(user_id)
         raw_dir = os.path.join(os.getcwd(), "data", "raw")
         if not os.path.exists(raw_dir):
             print("data/raw/ directory does not exist.")
@@ -116,15 +127,22 @@ class FilesManager:
         try:
             idx = int(choice) - 1
             if 0 <= idx < len(files):
-                selected_file = os.path.join(raw_dir, files[idx])
+                selected_name = files[idx]
+                existing = self.dm.get_uploaded_filenames(user_id)
+                if selected_name in existing:
+                    print("That file has already been uploaded. Choose a different file.")
+                    return None
+                selected_file = os.path.join(raw_dir, selected_name)
                 try:
                     result = self.dm.import_file(selected_file, user_id)
                     imported = result.get("imported", 0)
                     skipped = result.get("skipped", 0)
                     replaced = result.get("replaced", 0)
-                    print(f"Imported {imported}, Skipped {skipped}, Replaced {replaced} from {files[idx]}.")
+                    self.dm.save_user_data(user_id)
+                    self.dm.add_uploaded_filename(user_id, selected_name)
+                    print(f"Imported {imported}, Skipped {skipped}, Replaced {replaced} from {selected_name}.")
                 except Exception as e:
-                    print(f"Error importing {files[idx]}:", e)
+                    print(f"Error importing {selected_name}", e)
             else:
                 print("Invalid selection.")
         except ValueError:
@@ -132,7 +150,27 @@ class FilesManager:
         return None
 
     def select_all_from_raw(self, user_id):
-        results = self.dm.import_all_from_raw(user_id)
+        self._print_upload_history(user_id)
+        existing = set(self.dm.get_uploaded_filenames(user_id))
+        raw_dir = os.path.join(os.getcwd(), "data", "raw")
+        if not os.path.exists(raw_dir):
+            print("data/raw/ directory does not exist.")
+            return None
+        results = {}
+        for fname in os.listdir(raw_dir):
+            path = os.path.join(raw_dir, fname)
+            if not os.path.isfile(path):
+                continue
+            if fname in existing:
+                results[fname] = "skipped (already uploaded)"
+                continue
+            try:
+                res = self.dm.import_file(path, user_id)
+                self.dm.save_user_data(user_id)
+                self.dm.add_uploaded_filename(user_id, fname)
+                results[fname] = res
+            except Exception as e:
+                results[fname] = f"error: {e}"
         if not results:
             print("No files found in data/raw/")
             return None
