@@ -23,7 +23,7 @@ def _run_menu(menu_dict):
     """
     while True:
         _show_menu(menu_dict)
-        choice = input("Choice: ").strip()
+        choice = input("Enter your choice: ").strip()
         
         if choice in menu_dict:
             _, handler = menu_dict[choice]
@@ -31,68 +31,87 @@ def _run_menu(menu_dict):
             if result == "back":
                 break
         else:
-            print("Invalid choice. Try again.")
+            print("\nThat's not a valid option. Please select a number from the menu.")
 
 
 def run_cli():
     dm = DataManager()
     llm = LLMClient()
 
-    print("Welcome to Spend Analyzer (CLI Prototype)")
+    print("\n" + "=" * 60)
+    print("         Welcome to Spend Analyzer")
+    print("    Your Personal Spending Intelligence Tool")
+    print("=" * 60)
+    print("\nTrack receipts, analyze spending patterns, and get")
+    print("AI-powered insights to make smarter financial decisions.\n")
 
     def role_user():
-        user_id = input("Enter your user id (e.g., alice): ").strip() or "user"
+        print("\n" + "-" * 40)
+        print("Please enter your User ID to get started.")
+        print("This helps us save and retrieve your data.")
+        print("-" * 40)
+        user_id = input("Your User ID: ").strip() or "user"
         dm.load_user_data(user_id)
         user_menu(dm, llm, user_id)
         return None
 
     def role_admin():
-        print("Admin menu is currently disabled.")
+        print("\nAdmin features are currently unavailable.")
         return None
 
     def role_exit():
-        print("Goodbye!")
+        print("\nThank you for using Spend Analyzer. Goodbye!")
         return "exit"
 
     menu = {
-        "1": ("User", role_user),
-        "2": ("Admin", role_admin),
-        "3": ("Exit", role_exit),
+        "1": ("Continue as User", role_user),
+        "2": ("Admin Access", role_admin),
+        "3": ("Exit Application", role_exit),
     }
 
     while True:
-        _show_menu(menu, "Select role:")
-        choice = input("Choice: ").strip()
+        _show_menu(menu, "\nHow would you like to proceed?")
+        choice = input("Enter your choice: ").strip()
         
         if choice in menu:
             _, handler = menu[choice]
             if handler() == "exit":
                 break
         else:
-            print("Invalid choice. Try again.")
+            print("That's not a valid option. Please try again.")
 
 
 
 def files_menu(dm, user_id):
     files_manager = FilesManager(dm)
+    
+    print("\n" + "-" * 40)
+    print("        Data Import Options")
+    print("-" * 40)
+    print("Add your receipts to start tracking spending.\n")
+    
     menu = {
-        "1": ("Upload single receipt", lambda: _persist_and_report(files_manager.upload_single_receipt(user_id), dm, user_id)),
-        "2": ("Select one from raw data", lambda: files_manager.select_one_from_raw(user_id)),
-        "3": ("Select all from raw data", lambda: files_manager.select_all_from_raw(user_id)),
-        "4": ("Delete my stored receipts", lambda: _delete_user_data(dm, user_id)),
-        "5": ("Back", lambda: "back"),
+        "1": ("Enter a receipt manually", lambda: _persist_and_report(files_manager.upload_single_receipt(user_id), dm, user_id)),
+        "2": ("Import a single file from data/raw", lambda: files_manager.select_one_from_raw(user_id)),
+        "3": ("Import all files from data/raw", lambda: files_manager.select_all_from_raw(user_id)),
+        "4": ("Clear all my saved data", lambda: _delete_user_data(dm, user_id)),
+        "5": ("Go Back", lambda: "back"),
     }
     def _persist_and_report(txs, dm, user_id):
         if not txs:
-            print("No transactions created.")
+            print("\nNo items were added.")
             return
         res = dm.add_transactions(user_id, txs)
-        print(f"Appended {res.get('imported', 0)} transactions to your saved data.")
+        count = res.get('imported', 0)
+        print(f"\nSuccess! Added {count} item(s) to your spending history.")
     def _delete_user_data(dm, user_id):
-        confirm = input("Delete your stored receipts and upload history? (y/N): ").strip().lower()
-        if confirm == "y":
+        print("\nWarning: This will permanently remove all your saved receipts.")
+        confirm = input("Are you sure? Type 'yes' to confirm: ").strip().lower()
+        if confirm == "yes":
             dm.delete_user_data(user_id, delete_upload_history=True)
-            print("Deleted stored receipts and upload history for this user.")
+            print("\nAll your data has been cleared. You can start fresh!")
+        else:
+            print("\nCancelled. Your data is safe.")
     _run_menu(menu)
 
 
@@ -109,7 +128,8 @@ def user_menu(dm, llm, user_id):
         # Load recommendations and let the user choose a category to view
         recs, rec_file = llm_menu.load_recommendations(user_id)
         if not recs:
-            print(f"No recommendations found ({rec_file} missing or empty).")
+            print("\nNo saved recommendations found yet.")
+            print("Try asking the AI for spending insights first!")
             return None
 
         # Group by category
@@ -120,12 +140,15 @@ def user_menu(dm, llm, user_id):
 
         categories = sorted(grouped.keys())
         total_count = len(recs)
-        print("\nView Recommendations:\n")
-        print(f"0) All ({total_count})")
+        print("\n" + "=" * 50)
+        print("     Your Saved Recommendations")
+        print("=" * 50)
+        print("\nSelect a category to view:\n")
+        print(f"  0) View All ({total_count} recommendations)")
         for i, cat in enumerate(categories, 1):
-            print(f"{i}) {cat} ({len(grouped[cat])})")
+            print(f"  {i}) {cat} ({len(grouped[cat])})")
 
-        choice = input("Select category number (default 0): ").strip() or "0"
+        choice = input("\nEnter category number (default: all): ").strip() or "0"
         try:
             idx = int(choice)
         except Exception:
@@ -186,43 +209,58 @@ def user_menu(dm, llm, user_id):
     while True:
         has_data = dm.has_user_data(user_id)
         has_recs = llm_menu.has_recommendations(user_id)
-        menu = {
-            "1": ("Upload Files", files_option),
-            "2": ("Generate Reports", generate_reports),
-            "3": ("Transactions Menu", transactions_option),
-            "4": ("Back", lambda: "back"),
-        }
-        if has_data:
-            menu = {
-                "1": ("Upload Files", files_option),
-                "2": ("Ask LLM", ask_llm),
-                "3": ("Generate Reports", generate_reports),
-                "4": ("Transactions Menu", transactions_option),
-                "5": ("Back", lambda: "back"),
-            }
+        
+        # Show personalized header based on data status
+        print("\n" + "=" * 50)
+        print(f"  Welcome back, {user_id}!")
+        print("=" * 50)
+        
+        if not has_data:
+            print("\nYou don't have any spending data yet.")
+            print("Let's get started by importing your first receipts!\n")
+            print("Tip: Choose 'Import Receipts' to add your spending data.")
+        else:
+            txs = dm.get_transactions_by_user(user_id)
+            print(f"\nYou have {len(txs)} transactions on file.")
             if has_recs:
-                menu = {
-                    "1": ("Upload Files", files_option),
-                    "2": ("Ask LLM", ask_llm),
-                    "3": ("Generate Reports", generate_reports),
-                    "4": ("Delete Recommendation", delete_recommendations),
-                    "5": ("Transactions Menu", transactions_option),
-                    "6": ("Back", lambda: "back"),
-                }
+                print("You also have saved AI recommendations to review.\n")
+            else:
+                print("Try asking the AI for spending insights!\n")
+        
+        # Build menu dynamically based on available data
+        menu_items = [("Import Receipts", files_option)]
+        
+        if has_data:
+            menu_items.append(("Get AI Spending Insights", ask_llm))
+            menu_items.append(("View My Reports & Recommendations", generate_reports))
+            if has_recs:
+                menu_items.append(("Manage Saved Recommendations", delete_recommendations))
+            menu_items.append(("Browse My Transactions", transactions_option))
+        
+        menu_items.append(("Return to Main Menu", lambda: "back"))
+        
+        # Convert to numbered dict
+        menu = {str(i): item for i, item in enumerate(menu_items, 1)}
 
+        print("What would you like to do?")
         _show_menu(menu)
-        choice = input("Choice: ").strip()
+        choice = input("Enter your choice: ").strip()
         if choice in menu:
             _, handler = menu[choice]
             result = handler()
             if result == "back":
                 break
         else:
-            print("Invalid choice. Try again.")
+            print("\nThat's not a valid option. Please select a number from the menu.")
 
 
 def list_menu(dm, user_id):
     """Submenu for listing transactions, stores, receipts, and line items"""
+    
+    print("\n" + "-" * 40)
+    print("      Transaction Explorer")
+    print("-" * 40)
+    print("View and browse your spending data.\n")
     
     def _safe_float(v):
         try:
@@ -230,9 +268,22 @@ def list_menu(dm, user_id):
         except Exception:
             return 0.0
 
+    # Get transactions once for checking what data exists
+    txs = dm.get_transactions_by_user(user_id)
+    
+    # Check what data is available
+    has_stores = any(t.get("store") for t in txs)
+    has_receipts = any(t.get("orderno") or t.get("transaction_id") for t in txs)
+    has_line_items = any(
+        (t.get("item_name") or t.get("purchasedescription") or t.get("Description"))
+        and str(t.get("item_name") or "").upper() != "RECEIPT_TOTAL"
+        for t in txs
+    )
+
     def show_transactions():
+        nonlocal txs
         txs = dm.get_transactions_by_user(user_id)
-        print(f"Transactions ({len(txs)}) this is for testing to show data")
+        print(f"\nShowing {len(txs)} transactions (debug view):")
         for t in txs[:200]:
             print(t)
         return None
@@ -241,16 +292,17 @@ def list_menu(dm, user_id):
         txs = dm.get_transactions_by_user(user_id)
         store_pairs = [(t.get("store"), t.get("source")) for t in txs if t.get("store")]
         counts = Counter(store_pairs)
-        print(f"Top stores (showing source) (in-memory):")
+        print(f"\nYour Most Visited Stores:")
+        print("-" * 30)
         for (store, source), cnt in counts.most_common(20):
             src = source or "unknown"
-            print(f"{store} (source: {src}): {cnt}")
-        show_all = input("Show all store numbers with source? (y/N): ").strip().lower()
+            print(f"  Store #{store} ({src}): {cnt} visits")
+        show_all = input("\nShow complete store list? (y/N): ").strip().lower()
         if show_all == "y":
-            print(f"All stores (source):")
+            print(f"\nAll Stores:")
             for (store, source), cnt in counts.items():
                 src = source or "unknown"
-                print(f"{store} (source: {src}): {cnt}")
+                print(f"  Store #{store} ({src}): {cnt} visits")
         return None
 
     def show_receipts():
@@ -296,13 +348,20 @@ def list_menu(dm, user_id):
                     "store_source": t.get("source"),
                 })
 
-        print(f"Receipts ({len(receipts)}):")
+        print(f"\nYour Receipts ({len(receipts)} total):")
+        print("-" * 60)
         for rid, info in list(receipts.items())[:50]:
-            store_src = f"{info.get('store')} (source: {info.get('store_source') or 'unknown'})"
-            print(f"id={rid}, items={info['count']}, store={store_src}, date={info['date']}, "
-                  f"total_before={info['total_before']:.2f}, total_after={info['total_after']:.2f}")
+            store_src = f"Store #{info.get('store')} ({info.get('store_source') or 'unknown'})"
+            print(f"  Receipt: {rid}")
+            print(f"    Date: {info['date']} | {store_src} | {info['count']} items")
+            print(f"    Subtotal: ${info['total_before']:.2f} | Final: ${info['total_after']:.2f}")
+            print()
 
-        choice_detail = input("Enter receipt id to show line items, 'a' to show all details, or Enter to continue: ").strip()
+        print("Options:")
+        print("  - Enter a receipt ID to see item details")
+        print("  - Type 'a' to show all receipt details")
+        print("  - Press Enter to go back")
+        choice_detail = input("\nYour choice: ").strip()
         if choice_detail == "a":
             for rid, info in receipts.items():
                 print("\n--- Receipt", rid, "---")
@@ -343,8 +402,9 @@ def list_menu(dm, user_id):
                                       t.get("TransPrice") or (amount_before * _safe_float(t.get("quantity") or 1)))
             line_items.append({"name": name, "receipt": rid, "before": amount_before, "after": amount_after})
 
-        print(f"Line items ({len(line_items)}):")
-        filter_rid = input("Filter by receipt id (enter to skip): ").strip()
+        print(f"\nYour Purchased Items ({len(line_items)} total):")
+        print("-" * 60)
+        filter_rid = input("Filter by receipt ID (press Enter to see all): ").strip()
         shown = 0
         for it in line_items:
             if filter_rid and str(it.get("receipt")) != filter_rid:
@@ -356,16 +416,18 @@ def list_menu(dm, user_id):
                     store = t.get("store")
                     source = t.get("source")
                     break
-            print(f"{it['name']} | receipt={it['receipt']} | store={store} (source={source or 'unknown'}) | "
-                  f"before={it['before']:.2f} | after={it['after']:.2f}")
+            print(f"  {it['name']}")
+            print(f"    Receipt: {it['receipt']} | Store #{store} ({source or 'unknown'})")
+            print(f"    Price: ${it['before']:.2f} | You Paid: ${it['after']:.2f}")
+            print()
             shown += 1
             if shown >= 500:
-                more = input("More items available. Continue? (y/N): ").strip().lower()
+                more = input("\nThere are more items. Continue viewing? (y/N): ").strip().lower()
                 if more != "y":
                     break
                 shown = 0
         if shown == 0:
-            print("No items matched the filter or no items available.")
+            print("\nNo items found matching your criteria.")
         return None
 
     def show_db():
@@ -385,13 +447,24 @@ def list_menu(dm, user_id):
             print("DB not available or error when querying DB:", e)
         return None
 
-    menu = {
-        "1": ("Common stores (in-memory)", show_stores),
-        "2": ("Receipts summary (grouped by orderno)", show_receipts),
-        "3": ("Line items summary (top products)", show_line_items),
-        "4": ("Show DB stores/receipts/line_items (if DB available)", show_db),
-        "5": ("Back", lambda: "back"),
-    }
+    # Build menu dynamically based on available data
+    menu_items = []
+    if has_stores:
+        menu_items.append(("View Stores Where You Shop", show_stores))
+    if has_receipts:
+        menu_items.append(("Browse Receipts by Date", show_receipts))
+    if has_line_items:
+        menu_items.append(("See All Purchased Items", show_line_items))
+    menu_items.append(("Go Back", lambda: "back"))
+    
+    if len(menu_items) == 1:  # Only "Back" option
+        print("\nNo spending data to display yet.")
+        print("Import some receipts first to see your transaction history.")
+        return
+    
+    menu = {str(i): item for i, item in enumerate(menu_items, 1)}
+
+    _run_menu(menu)
 
     _run_menu(menu)
 

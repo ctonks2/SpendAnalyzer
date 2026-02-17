@@ -586,11 +586,17 @@ class DataManager:
                 else:
                     normalized["orderno"] = date_str
 
-        # Ensure ordner/product_upc values are strings when present
+        # Ensure orderno is string and product_upc is number
         if normalized.get("orderno") not in (None, ""):
             normalized["orderno"] = str(normalized.get("orderno"))
         if normalized.get("product_upc") not in (None, ""):
-            normalized["product_upc"] = str(normalized.get("product_upc"))
+            try:
+                # Extract digits and convert to int
+                upc_str = str(normalized.get("product_upc"))
+                digits = ''.join(ch for ch in upc_str if ch.isdigit())
+                normalized["product_upc"] = int(digits) if digits else None
+            except (ValueError, TypeError):
+                normalized["product_upc"] = None
 
         # Attempt to parse date
         d = normalized.get("date") or row.get("date") or row.get("purchase_date")
@@ -614,12 +620,21 @@ class DataManager:
             elif "trans" in row and row.get("trans") not in (None, ""):
                 normalized["orderno"] = str(row.get("trans"))
 
-        # Capture UPC/product identifier if present
+        # Capture UPC/product identifier if present (convert to number)
         if not normalized.get("product_upc"):
+            upc_val = None
             if "productupc" in row and row.get("productupc") not in (None, ""):
-                normalized["product_upc"] = str(row.get("productupc"))
+                upc_val = row.get("productupc")
             elif "UPC" in row and row.get("UPC") not in (None, ""):
-                normalized["product_upc"] = str(row.get("UPC"))
+                upc_val = row.get("UPC")
+            elif "upc" in row and row.get("upc") not in (None, ""):
+                upc_val = row.get("upc")
+            if upc_val is not None:
+                try:
+                    digits = ''.join(ch for ch in str(upc_val) if ch.isdigit())
+                    normalized["product_upc"] = int(digits) if digits else None
+                except (ValueError, TypeError):
+                    normalized["product_upc"] = None
 
         # Prefer retailamt as unit_price (pre-discount) and customerloyamt/TransPrice as total_price (post-discount)
         if normalized.get("unit_price") in (None, ""):
@@ -652,6 +667,14 @@ class DataManager:
                 normalized["total_price"] = float(normalized.get("total_price"))
         except Exception:
             pass
+
+        # string type coercion for string fields
+        if normalized.get("store") not in (None, ""):
+            normalized["store"] = str(normalized.get("store"))
+        if normalized.get("item_name") not in (None, ""):
+            normalized["item_name"] = str(normalized.get("item_name"))
+        if normalized.get("category") not in (None, ""):
+            normalized["category"] = str(normalized.get("category"))
 
         return normalized
 
