@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Spend Analyzer{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        {% include 'partials/_navbar.html' %}
+        
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    
+    {% block scripts %}
+    <script>
+        // Initialize transactions data from server
+        let allTransactions = {{ transactions | tojson | safe if transactions else '[]' }};
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% endblock %}
+</body>
+</html>

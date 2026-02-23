@@ -68,11 +68,9 @@ class LLMClient:
             pass
 
     def start_agent_conversation(self, agent_id=None, inputs=None):
-        """Start a conversation with a Mistral agent using the (beta) conversations API.
+        """Start a conversation with a Mistral agent.
 
-        This posts JSON: {"agent_id": <id>, "inputs": <inputs>} to the configured
-        agent conversation endpoint and returns the parsed JSON response or an
-        error dict.
+        Returns the parsed JSON response or an error dict.
         """
         aid = agent_id or self.agent_id
         if not aid:
@@ -96,6 +94,7 @@ class LLMClient:
             inputs_list = [{"role": "user", "content": ""}]
 
         payload = {"agent_id": aid, "inputs": inputs_list}
+        
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         try:
             resp = requests.post(self.agent_conv_endpoint, json=payload, headers=headers, timeout=30)
@@ -135,8 +134,8 @@ class LLMClient:
         # about recent transactions.
         if context is not None:
             if isinstance(context, list):
-                # Limit context size to avoid huge payloads
-                ctx_snippet = json.dumps(context[:200], default=str)
+                # Send all transactions to the LLM
+                ctx_snippet = json.dumps(context, default=str)
             else:
                 ctx_snippet = json.dumps(context, default=str)
             full_input = f"Context:\n{ctx_snippet}\n\nUser prompt:\n{prompt}"

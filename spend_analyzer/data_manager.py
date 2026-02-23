@@ -386,10 +386,27 @@ class DataManager:
                     break
             if is_total:
                 # create a receipt-level transaction
+                # Normalize date to YYYY-MM-DD only
+                raw_date = rowdict.get("date") or rowdict.get("purchase_date")
+                norm_date = None
+                if raw_date:
+                    d_str = str(raw_date).strip()
+                    if 'T' in d_str:
+                        norm_date = d_str.split('T')[0]
+                    elif ' ' in d_str and ':' in d_str:
+                        norm_date = d_str.split(' ')[0]
+                    else:
+                        try:
+                            dt = datetime.fromisoformat(d_str)
+                            norm_date = dt.date().isoformat()
+                        except Exception:
+                            match = re.search(r'(\d{4}-\d{2}-\d{2})', d_str)
+                            norm_date = match.group(1) if match else d_str
+                
                 tx = {
                     "transaction_id": f"tx_{len(self.transactions)+1}",
                     "user_id": user_id,
-                    "date": rowdict.get("date") or rowdict.get("purchase_date"),
+                    "date": norm_date,
                     "store": rowdict.get("store") or rowdict.get("merchant"),
                     "item_name": "RECEIPT_TOTAL",
                     "quantity": 1,
@@ -539,18 +556,30 @@ class DataManager:
                         # only replace when digits are present; otherwise keep original
                         normalized["store"] = digits
 
-        # Attempt to parse date
+        # Attempt to parse date - always use YYYY-MM-DD format only, no time
         d = normalized.get("date") or row.get("date") or row.get("purchase_date")
         if d:
             try:
-                dt = datetime.fromisoformat(d)
-                # If time is midnight, prefer date-only string (YYYY-MM-DD)
-                if dt.hour == 0 and dt.minute == 0 and dt.second == 0:
-                    normalized["date"] = dt.date().isoformat()
+                # Handle various date formats and extract date-only
+                d_str = str(d).strip()
+                # Try ISO format first (handles datetime and date)
+                if 'T' in d_str:
+                    # DateTime with T separator - take date part
+                    normalized["date"] = d_str.split('T')[0]
+                elif ' ' in d_str and ':' in d_str:
+                    # DateTime with space separator - take date part
+                    normalized["date"] = d_str.split(' ')[0]
                 else:
-                    normalized["date"] = dt.isoformat()
+                    # Try parsing as ISO date
+                    dt = datetime.fromisoformat(d_str)
+                    normalized["date"] = dt.date().isoformat()
             except Exception:
-                normalized["date"] = str(d)
+                # If all else fails, try to extract YYYY-MM-DD pattern
+                match = re.search(r'(\d{4}-\d{2}-\d{2})', str(d))
+                if match:
+                    normalized["date"] = match.group(1)
+                else:
+                    normalized["date"] = str(d)
 
         # Determine a canonical numeric store id when possible. Check common fields first,
         # then fall back to digits found in the `store` or `source` fields.

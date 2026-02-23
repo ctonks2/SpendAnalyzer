@@ -1,0 +1,30 @@
+{# Navigation Bar Partial - Header, User Bar, and Tabs #}
+
+<div class="header">
+    <h1>💰 Spend Analyzer</h1>
+    <p>Track your spending, get AI insights, save money</p>
+</div>
+
+<div class="user-bar">
+    <div>
+        <label style="margin-right: 10px; font-weight: 500;">User ID:</label>
+        <input type="text" id="userId" placeholder="Enter your ID" value="{{ user_id }}">
+        <button onclick="loadUser()">Load</button>
+    </div>
+    <div class="user-info" id="userStatus">
+        {% if user_id %}
+            Welcome, <strong>{{ user_id }}</strong>! ({{ transaction_count }} transactions)
+        {% else %}
+            Enter your User ID to get started
+        {% endif %}
+    </div>
+</div>
+
+<div class="tabs">
+    <button class="tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
+    <button class="tab" onclick="showTab('add')">➕ Add Receipt</button>
+    <button class="tab" onclick="showTab('chat')">🤖 AI Insights</button>
+    <button class="tab" onclick="showTab('saved')">📁 Saved Insights</button>
+    <button class="tab" onclick="showTab('data')">📋 View Data</button>
+    <button class="tab" onclick="showTab('settings')">⚙️ Settings</button>
+</div>

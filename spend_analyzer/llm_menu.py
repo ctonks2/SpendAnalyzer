@@ -81,6 +81,7 @@ class LLMMenu:
                         assistant_text = json.dumps(res)
                     except Exception:
                         assistant_text = str(res)
+                
                 print("Assistant:", assistant_text)
                 messages.append({"role": "assistant", "content": assistant_text})
                 save_choice = input("\nSave this recommendation? (y/N): ").strip().lower()
