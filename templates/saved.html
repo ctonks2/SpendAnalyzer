@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Insights - Spend Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            
+            <!-- Prominent Back Button -->
+            <a href="/?user_id={{ user_id }}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+                ← Back to Dashboard
+            </a>
+            
+            <h2 class="section-title">📁 Saved Insights</h2>
+
+{% if not user_id %}
+<div class="no-data">
+    <p>Please <a href="/">load a user</a> first to view saved insights.</p>
+</div>
+{% else %}
+<p style="color: #666; margin-bottom: 20px;">Your saved AI recommendations and spending insights.</p>
+
+<div id="savedInsightsList">
+    {% if recommendations %}
+    {% for rec in recommendations %}
+    <div class="insight-card">
+        <div class="insight-header" onclick="toggleInsight({{ loop.index0 }})">
+            <div class="insight-meta">
+                <span class="insight-category">{{ rec.category }}</span>
+                <span class="insight-date">{{ rec.date }}</span>
+            </div>
+            <div class="insight-question">{{ rec.question }}</div>
+            <div class="insight-toggle">▼</div>
+        </div>
+        <div class="insight-answer" id="insightAnswer{{ loop.index0 }}" style="display: none;">
+            <div class="insight-response">{{ rec.response }}</div>
+            <button class="btn btn-danger" style="margin-top: 15px; padding: 8px 20px;" 
+                onclick="deleteRec({{ loop.index0 }})">🗑️ Delete</button>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="no-data">
+        <p>No saved insights yet.</p>
+        <p style="color: #888; font-size: 0.9rem;">Chat with the AI and save helpful recommendations!</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+    const userId = '{{ user_id }}';
+
+    function showAlert(message, type) {
+        const alert = document.getElementById('alert');
+        alert.textContent = message;
+        alert.className = 'alert alert-' + type;
+        alert.classList.remove('hidden');
+        setTimeout(() => alert.classList.add('hidden'), 5000);
+    }
+
+    /**
+     * Simple markdown to HTML converter
+     */
+    function markdownToHtml(text) {
+        if (!text) return '';
+        
+        let html = text;
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        html = html.replace(/^---+$/gm, '<hr>');
+        html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/(<li>[\s\S]*?<\/li>\n?)+/g, function(match) {
+            return '<ul>' + match + '</ul>';
+        });
+        html = html.replace(/\n/g, '<br>');
+        html = html.replace(/(<br>){3,}/g, '<br><br>');
+        html = html.replace(/<\/(h3|ul|li|hr)><br>/g, '</$1>');
+        html = html.replace(/<br><(h3|ul|hr)/g, '<$1');
+        
+        return html;
+    }
+
+    function toggleInsight(index) {
+        const answerDiv = document.getElementById('insightAnswer' + index);
+        const card = answerDiv.closest('.insight-card');
+        
+        if (answerDiv.style.display === 'none') {
+            answerDiv.style.display = 'block';
+            card.classList.add('expanded');
+        } else {
+            answerDiv.style.display = 'none';
+            card.classList.remove('expanded');
+        }
+    }
+
+    function deleteRec(index) {
+        if (!confirm('Delete this recommendation?')) return;
+        
+        fetch('/api/delete_recommendation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, index: index })
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('Deleted!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        });
+    }
+
+    // Format saved insights with markdown on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.insight-response').forEach(el => {
+            el.innerHTML = markdownToHtml(el.textContent);
+        });
+    });
+
+    // Show success/error messages from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    const msgType = urlParams.get('type');
+    if (message) {
+        showAlert(decodeURIComponent(message), msgType || 'success');
+    }
+</script>
+        </div>
+    </div>
+</body>
+</html>

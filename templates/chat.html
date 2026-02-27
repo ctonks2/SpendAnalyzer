@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Insights - Spend Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            
+            <!-- Prominent Back Button -->
+            <a href="/?user_id={{ user_id }}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+                ← Back to Dashboard
+            </a>
+            
+            <h2 class="section-title">🤖 AI Spending Insights</h2>
+
+{% if not user_id %}
+<div class="no-data">
+    <p>Please <a href="/">load a user</a> first to get AI insights.</p>
+</div>
+{% else %}
+<!-- Sub-tab toggle -->
+<div style="margin-bottom: 15px;">
+    <div class="view-toggle">
+        <button class="view-btn active" onclick="setChatView('chat')" id="chatViewBtn">💬 Chat</button>
+        <button class="view-btn" onclick="setChatView('detailed')" id="detailedViewBtn">📋 Detailed</button>
+    </div>
+</div>
+
+<!-- Chat View -->
+<div id="chatViewContent" class="chat-container">
+    <div class="chat-messages" id="chatMessages">
+        <div class="message assistant">
+            Hello! I'm your spending advisor. Ask me about your purchase history, 
+            ways to save money, or get budget tips based on your receipts.
+        </div>
+    </div>
+    <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Ask about your spending..." 
+               onkeypress="if(event.key==='Enter')sendMessage()">
+        <button class="btn" onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<!-- Detailed View -->
+<div id="detailedViewContent" style="display: none;">
+    <div style="margin-bottom: 15px;">
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
+            <input type="text" id="testQuestion" placeholder="Test a question (e.g., 'spending in 2025' or 'Costco purchases')" 
+                   style="flex: 1; min-width: 250px; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);"
+                   onkeypress="if(event.key==='Enter')refreshLLMContext()">
+            <button class="btn btn-secondary" onclick="refreshLLMContext()">🔍 Test Filter</button>
+        </div>
+        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+            <span id="contextStats" style="color: var(--text-muted);"></span>
+            <span id="filterInfo" style="color: var(--accent);"></span>
+        </div>
+    </div>
+    <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 10px;">
+        💡 The AI automatically filters context based on your question (years, months, store names). 
+        Test different questions above to see what data would be sent.
+    </p>
+    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; max-height: 450px; overflow-y: auto;">
+        <pre id="llmContextDisplay" style="margin: 0; white-space: pre-wrap; word-wrap: break-word; font-family: 'Consolas', monospace; font-size: 12px; color: var(--text-primary);">Enter a test question and click "Test Filter" to see what context would be sent to the LLM.</pre>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    const userId = '{{ user_id }}';
+
+    // Store last chat exchange for saving
+    let lastQuestion = '';
+    let lastResponse = '';
+    let lastInsightSaved = false;
+
+    function showAlert(message, type) {
+        const alert = document.getElementById('alert');
+        alert.textContent = message;
+        alert.className = 'alert alert-' + type;
+        alert.classList.remove('hidden');
+        setTimeout(() => alert.classList.add('hidden'), 5000);
+    }
+
+    /**
+     * Simple markdown to HTML converter
+     */
+    function markdownToHtml(text) {
+        if (!text) return '';
+        
+        let html = text;
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        html = html.replace(/^---+$/gm, '<hr>');
+        html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/(<li>[\s\S]*?<\/li>\n?)+/g, function(match) {
+            return '<ul>' + match + '</ul>';
+        });
+        html = html.replace(/\n/g, '<br>');
+        html = html.replace(/(<br>){3,}/g, '<br><br>');
+        html = html.replace(/<\/(h3|ul|li|hr)><br>/g, '</$1>');
+        html = html.replace(/<br><(h3|ul|hr)/g, '<$1');
+        
+        return html;
+    }
+
+    function setChatView(view) {
+        document.getElementById('chatViewBtn').classList.toggle('active', view === 'chat');
+        document.getElementById('detailedViewBtn').classList.toggle('active', view === 'detailed');
+        document.getElementById('chatViewContent').style.display = view === 'chat' ? 'flex' : 'none';
+        document.getElementById('detailedViewContent').style.display = view === 'detailed' ? 'block' : 'none';
+        
+        if (view === 'detailed') {
+            refreshLLMContext();
+        }
+    }
+
+    function refreshLLMContext() {
+        if (!userId) {
+            document.getElementById('llmContextDisplay').textContent = 'Please load a user first to see context data.';
+            document.getElementById('contextStats').textContent = '';
+            document.getElementById('filterInfo').textContent = '';
+            return;
+        }
+        
+        const testQuestion = document.getElementById('testQuestion')?.value.trim() || '';
+        document.getElementById('llmContextDisplay').textContent = 'Loading...';
+        
+        let url = `/api/llm_context?user_id=${encodeURIComponent(userId)}`;
+        if (testQuestion) {
+            url += `&question=${encodeURIComponent(testQuestion)}`;
+        }
+        
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('llmContextDisplay').textContent = 'Error: ' + data.error;
+                    return;
+                }
+                
+                const context = data.context || [];
+                const totalCount = data.total_transactions || context.length;
+                const filteredCount = data.filtered_count || context.length;
+                const filters = data.filters_applied || [];
+                
+                const jsonStr = JSON.stringify(context);
+                const charCount = jsonStr.length;
+                const estimatedTokens = Math.ceil(charCount / 4);
+                
+                document.getElementById('contextStats').textContent = 
+                    `${filteredCount} of ${totalCount} transactions | ${charCount.toLocaleString()} chars | ~${estimatedTokens.toLocaleString()} tokens`;
+                document.getElementById('filterInfo').textContent = 
+                    filters.length ? `Filters: ${filters.join(', ')}` : '';
+                document.getElementById('llmContextDisplay').textContent = JSON.stringify(context, null, 2);
+            })
+            .catch(err => {
+                document.getElementById('llmContextDisplay').textContent = 'Error loading context: ' + err.message;
+            });
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+        if (!message) return;
+        
+        if (!userId) {
+            showAlert('Please load a user first', 'error');
+            return;
+        }
+        
+        const messages = document.getElementById('chatMessages');
+        messages.innerHTML += `<div class="message user">${message}</div>`;
+        input.value = '';
+        messages.scrollTop = messages.scrollHeight;
+        
+        // Show typing indicator
+        messages.innerHTML += `<div class="message assistant" id="typing">Thinking...</div>`;
+        messages.scrollTop = messages.scrollHeight;
+        
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, message: message })
+        })
+        .then(r => r.json())
+        .then(result => {
+            document.getElementById('typing').remove();
+            const response = result.response || 'Sorry, I encountered an error.';
+            
+            // Store for saving later
+            lastQuestion = message;
+            lastResponse = response;
+            lastInsightSaved = false;
+            
+            // Convert markdown to HTML for display
+            const formattedResponse = markdownToHtml(response);
+            messages.innerHTML += `<div class="message assistant">${formattedResponse}</div>`;
+            messages.scrollTop = messages.scrollHeight;
+            
+            if (result.response && !result.error) {
+                // Offer to save with category dropdown
+                messages.innerHTML += `<div class="message assistant" id="saveInsightBox">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <select id="insightCategory" style="padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;">
+                            <option value="Budget Tips">💰 Budget Tips</option>
+                            <option value="Food & Groceries">🛒 Food & Groceries</option>
+                            <option value="Shopping Advice">🛍️ Shopping Advice</option>
+                            <option value="Entertainment">🎬 Entertainment</option>
+                            <option value="Utilities">⚡ Utilities</option>
+                            <option value="Travel">✈️ Travel</option>
+                            <option value="Health">🏥 Health</option>
+                            <option value="Other">📝 Other</option>
+                        </select>
+                        <button class="btn" style="padding: 8px 15px; font-size: 0.9rem;" 
+                            id="saveInsightBtn" onclick="saveLastRecommendation()">
+                            💾 Save
+                        </button>
+                    </div>
+                </div>`;
+            }
+        })
+        .catch(err => {
+            document.getElementById('typing')?.remove();
+            messages.innerHTML += `<div class="message assistant">Sorry, something went wrong.</div>`;
+        });
+    }
+
+    function saveLastRecommendation() {
+        if (!lastQuestion || !lastResponse) {
+            showAlert('No insight to save', 'error');
+            return;
+        }
+        
+        if (lastInsightSaved) {
+            showAlert('This insight has already been saved', 'error');
+            return;
+        }
+        
+        const categorySelect = document.getElementById('insightCategory');
+        const category = categorySelect ? categorySelect.value : 'Other';
+        
+        const saveBtn = document.getElementById('saveInsightBtn');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = '⏳ Saving...';
+        }
+        
+        fetch('/api/save_recommendation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, question: lastQuestion, response: lastResponse, category: category })
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                lastInsightSaved = true;
+                showAlert('Recommendation saved!', 'success');
+                
+                const saveBox = document.getElementById('saveInsightBox');
+                if (saveBox) {
+                    saveBox.innerHTML = '<span style="color: #28a745; font-weight: 500;">✓ Insight saved to ' + category + '</span>';
+                }
+            } else {
+                showAlert('Failed to save: ' + (result.error || 'Unknown error'), 'error');
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '💾 Save';
+                }
+            }
+        })
+        .catch(err => {
+            showAlert('Error saving recommendation', 'error');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Save';
+            }
+        });
+    }
+
+    // Show success/error messages from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    const msgType = urlParams.get('type');
+    if (message) {
+        showAlert(decodeURIComponent(message), msgType || 'success');
+    }
+</script>
+        </div>
+    </div>
+</body>
+</html>

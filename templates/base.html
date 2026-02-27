@@ -18,10 +18,6 @@
     </div>
     
     {% block scripts %}
-    <script>
-        // Initialize transactions data from server
-        let allTransactions = {{ transactions | tojson | safe if transactions else '[]' }};
-    </script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% endblock %}
 </body>

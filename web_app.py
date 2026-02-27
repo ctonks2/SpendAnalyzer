@@ -3,7 +3,7 @@ Flask Web Application for Spend Analyzer
 A simple web interface for managing receipts and getting AI spending insights.
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
 import json
 import unicodedata
@@ -188,6 +188,221 @@ def index():
         store_count=store_count,
         recommendations=recommendations,
         rec_count=len(recommendations)
+    )
+
+
+@app.route('/add', methods=['GET', 'POST'])
+def add_receipt_page():
+    """Route for the add receipt page - displays form and handles submission"""
+    user_id = request.args.get('user_id', '') or request.form.get('user_id', '')
+    
+    if request.method == 'GET':
+        # Display the add receipt form
+        transactions = []
+        if user_id:
+            dm.load_user_data(user_id)
+            transactions = dm.get_transactions_by_user(user_id)
+        
+        return render_template(
+            'add_receipt.html',
+            user_id=user_id,
+            transactions=transactions,
+            transaction_count=len(transactions)
+        )
+    
+    # POST - Handle form submission
+    try:
+        store_number = request.form.get('store_number', '').strip()
+        store_name = request.form.get('store_name', '').strip() or 'unknown'
+        date_str = request.form.get('date', '').strip()
+        
+        # Validate required fields
+        if not user_id:
+            return redirect(url_for('add_receipt_page', message='Please load a user first', type='error'))
+        
+        if not store_number:
+            return redirect(url_for('add_receipt_page', user_id=user_id, message='Store number is required', type='error'))
+        
+        if not date_str:
+            return redirect(url_for('add_receipt_page', user_id=user_id, message='Date is required', type='error'))
+        
+        # Parse items from form data
+        items = []
+        i = 0
+        while True:
+            item_name = request.form.get(f'items[{i}][name]')
+            if item_name is None:
+                break
+            
+            item_price = request.form.get(f'items[{i}][price]', '0')
+            item_qty = request.form.get(f'items[{i}][qty]', '1')
+            item_discount = request.form.get(f'items[{i}][discount]', '0')
+            
+            if item_name.strip():  # Only add non-empty items
+                items.append({
+                    'name': item_name.strip(),
+                    'price': float(item_price) if item_price else 0,
+                    'qty': int(item_qty) if item_qty else 1,
+                    'discount': float(item_discount) if item_discount else 0
+                })
+            i += 1
+        
+        if not items:
+            return redirect(url_for('add_receipt_page', user_id=user_id, message='At least one item is required', type='error'))
+        
+        # Load user data and create transactions
+        dm.load_user_data(user_id)
+        orderno = f"{store_number}.{date_str}"
+        
+        transactions = []
+        final_total = 0
+        
+        for item in items:
+            item_subtotal = item['price'] * item['qty']
+            item_discount = item['discount']
+            item_total = item_subtotal - item_discount
+            final_total += item_total
+            
+            tx = {
+                'user_id': user_id,
+                'item_name': item['name'],
+                'unit_price': item['price'],
+                'quantity': item['qty'],
+                'total_price': item_total,
+                'store': store_number,
+                'source': store_name,
+                'date': date_str,
+                'orderno': orderno
+            }
+            transactions.append(tx)
+            
+            # Add discount line item if there's a discount
+            if item_discount > 0:
+                transactions.append({
+                    'user_id': user_id,
+                    'item_name': f"DISCOUNT ({item['name']})",
+                    'unit_price': -item_discount,
+                    'quantity': 1,
+                    'total_price': -item_discount,
+                    'store': store_number,
+                    'source': store_name,
+                    'date': date_str,
+                    'orderno': orderno
+                })
+        
+        # Add receipt total (for reference, not counted in stats)
+        transactions.append({
+            'user_id': user_id,
+            'item_name': 'RECEIPT_TOTAL',
+            'unit_price': 0,
+            'quantity': 1,
+            'total_price': final_total,
+            'store': store_number,
+            'source': store_name,
+            'date': date_str,
+            'orderno': orderno
+        })
+        
+        # Save to JSON file
+        result = dm.add_transactions(user_id, transactions)
+        
+        # Redirect to data view (receipts list) with success message
+        return redirect(f"/?user_id={user_id}&tab=data&message=Receipt saved successfully!&type=success")
+        
+    except Exception as e:
+        return redirect(url_for('add_receipt_page', user_id=user_id, message=f'Error: {str(e)}', type='error'))
+
+
+@app.route('/import')
+def import_page():
+    """Route for the import files page"""
+    user_id = request.args.get('user_id', '')
+    
+    transactions = []
+    if user_id:
+        dm.load_user_data(user_id)
+        transactions = dm.get_transactions_by_user(user_id)
+    
+    return render_template(
+        'import.html',
+        user_id=user_id,
+        transactions=transactions,
+        transaction_count=len(transactions)
+    )
+
+
+@app.route('/chat')
+def chat_page():
+    """Route for the AI insights/chat page"""
+    user_id = request.args.get('user_id', '')
+    
+    transactions = []
+    if user_id:
+        dm.load_user_data(user_id)
+        transactions = dm.get_transactions_by_user(user_id)
+    
+    return render_template(
+        'chat.html',
+        user_id=user_id,
+        transactions=transactions,
+        transaction_count=len(transactions)
+    )
+
+
+@app.route('/saved')
+def saved_page():
+    """Route for the saved insights page"""
+    user_id = request.args.get('user_id', '')
+    
+    transactions = []
+    recommendations = []
+    if user_id:
+        dm.load_user_data(user_id)
+        transactions = dm.get_transactions_by_user(user_id)
+        recommendations, _ = llm_menu.load_recommendations(user_id)
+    
+    return render_template(
+        'saved.html',
+        user_id=user_id,
+        transactions=transactions,
+        transaction_count=len(transactions),
+        recommendations=recommendations
+    )
+
+
+@app.route('/data')
+def data_page():
+    """Route for the view data page"""
+    user_id = request.args.get('user_id', '')
+    
+    transactions = []
+    if user_id:
+        dm.load_user_data(user_id)
+        transactions = dm.get_transactions_by_user(user_id)
+    
+    return render_template(
+        'data.html',
+        user_id=user_id,
+        transactions=transactions,
+        transaction_count=len(transactions)
+    )
+
+
+@app.route('/settings')
+def settings_page():
+    """Route for the settings page"""
+    user_id = request.args.get('user_id', '')
+    
+    transactions = []
+    if user_id:
+        dm.load_user_data(user_id)
+        transactions = dm.get_transactions_by_user(user_id)
+    
+    return render_template(
+        'settings.html',
+        user_id=user_id,
+        transactions=transactions,
+        transaction_count=len(transactions)
     )
 
 

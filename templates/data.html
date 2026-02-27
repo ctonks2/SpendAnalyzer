@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Data - Spend Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            
+            <!-- Prominent Back Button -->
+            <a href="/?user_id={{ user_id }}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+                ← Back to Dashboard
+            </a>
+            
+            <h2 class="section-title">📋 Your Data</h2>
+
+{% if not user_id %}
+<div class="no-data">
+    <p>Please <a href="/">load a user</a> first to view data.</p>
+</div>
+{% else %}
+<!-- View Controls -->
+<div class="data-controls">
+    <div class="view-toggle">
+        <button class="view-btn active" onclick="setView('items')" id="viewItems">Items</button>
+        <button class="view-btn" onclick="setView('receipts')" id="viewReceipts">Receipts</button>
+        <button class="view-btn" onclick="setView('stores')" id="viewStores">Stores</button>
+    </div>
+    <div class="sort-controls">
+        <label>Sort by:</label>
+        <select id="sortBy" onchange="sortData()">
+            <option value="date-desc">Date (Newest)</option>
+            <option value="date-asc">Date (Oldest)</option>
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="store-asc">Store (A-Z)</option>
+            <option value="total-desc">Total (High-Low)</option>
+            <option value="total-asc">Total (Low-High)</option>
+        </select>
+    </div>
+</div>
+
+<!-- Data Display -->
+<div id="dataDisplay">
+    {% if transactions %}
+    <div class="table-container" style="max-height: 500px; overflow-y: auto;">
+        <table class="data-table" id="dataTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+    {% else %}
+    <div class="no-data">
+        <p>No transactions yet. Add receipts to see your spending data!</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+    const userId = '{{ user_id }}';
+    
+    // Initialize transaction data from template
+    const allTransactions = {{ transactions | tojson | safe }};
+    
+    // State Variables
+    let currentView = 'items';
+    let currentPage = 1;
+    let itemsPerPage = 25;
+    let sortedData = [];
+
+    function showAlert(message, type) {
+        const alert = document.getElementById('alert');
+        alert.textContent = message;
+        alert.className = 'alert alert-' + type;
+        alert.classList.remove('hidden');
+        setTimeout(() => alert.classList.add('hidden'), 5000);
+    }
+
+    /**
+     * Normalize date to YYYY-MM-DD for proper sorting/display
+     */
+    function normalizeDate(d) {
+        if (!d) return '';
+        const str = String(d).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+        const match = str.match(/(\d{4}-\d{2}-\d{2})/);
+        if (match) return match[1];
+        try {
+            const dt = new Date(str);
+            if (!isNaN(dt)) {
+                return dt.toISOString().split('T')[0];
+            }
+        } catch(e) {}
+        return str;
+    }
+
+    function setView(view) {
+        currentView = view;
+        currentPage = 1;
+        
+        document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('view' + view.charAt(0).toUpperCase() + view.slice(1)).classList.add('active');
+        
+        sortData();
+    }
+
+    function sortData() {
+        const sortBy = document.getElementById('sortBy').value;
+        let data = [];
+        
+        if (currentView === 'items') {
+            data = allTransactions.filter(tx => tx.item_name !== 'RECEIPT_TOTAL');
+        } else if (currentView === 'receipts') {
+            data = getReceipts();
+        } else if (currentView === 'stores') {
+            data = getStores();
+        }
+        
+        const [field, direction] = sortBy.split('-');
+        
+        data.sort((a, b) => {
+            let valA, valB, secA, secB;
+            
+            if (field === 'date') {
+                valA = normalizeDate(a.date);
+                valB = normalizeDate(b.date);
+                secA = (a.store || '').toLowerCase();
+                secB = (b.store || '').toLowerCase();
+            } else if (field === 'name') {
+                valA = (a.item_name || a.store || '').toLowerCase();
+                valB = (b.item_name || b.store || '').toLowerCase();
+                secA = normalizeDate(a.date);
+                secB = normalizeDate(b.date);
+            } else if (field === 'store') {
+                valA = (a.store || '').toLowerCase();
+                valB = (b.store || '').toLowerCase();
+                secA = normalizeDate(a.date);
+                secB = normalizeDate(b.date);
+            } else if (field === 'total') {
+                valA = parseFloat(a.total_price || a.total || 0);
+                valB = parseFloat(b.total_price || b.total || 0);
+                secA = normalizeDate(a.date);
+                secB = normalizeDate(b.date);
+            }
+            
+            let cmp;
+            if (direction === 'asc') {
+                cmp = valA > valB ? 1 : valA < valB ? -1 : 0;
+            } else {
+                cmp = valA < valB ? 1 : valA > valB ? -1 : 0;
+            }
+            
+            if (cmp === 0 && secA !== undefined) {
+                cmp = secA > secB ? 1 : secA < secB ? -1 : 0;
+            }
+            
+            return cmp;
+        });
+        
+        sortedData = data;
+        currentPage = 1;
+        renderTable();
+    }
+
+    function getReceipts() {
+        const receipts = {};
+        allTransactions.forEach(tx => {
+            if (tx.item_name === 'RECEIPT_TOTAL') return;
+            
+            const normDate = normalizeDate(tx.date) || 'unknown';
+            const key = normDate + '|' + (tx.store || 'unknown');
+            if (!receipts[key]) {
+                receipts[key] = {
+                    date: normDate,
+                    store: tx.store,
+                    source: tx.source,
+                    items: 0,
+                    total: 0,
+                    itemsList: []
+                };
+            }
+            receipts[key].items++;
+            receipts[key].total += parseFloat(tx.total_price || 0);
+            receipts[key].itemsList.push(tx);
+        });
+        return Object.values(receipts);
+    }
+
+    function getStores() {
+        const stores = {};
+        allTransactions.forEach(tx => {
+            if (tx.item_name === 'RECEIPT_TOTAL') return;
+            
+            const store = tx.store || 'Unknown';
+            if (!stores[store]) {
+                stores[store] = {
+                    store: store,
+                    source: tx.source,
+                    receipts: new Set(),
+                    items: 0,
+                    total: 0
+                };
+            }
+            stores[store].receipts.add(normalizeDate(tx.date));
+            stores[store].items++;
+            stores[store].total += parseFloat(tx.total_price || 0);
+        });
+        return Object.values(stores).map(s => ({
+            ...s,
+            receipts: s.receipts.size
+        }));
+    }
+
+    function renderTable() {
+        const thead = document.getElementById('tableHead');
+        const tbody = document.getElementById('tableBody');
+        
+        if (!sortedData || sortedData.length === 0) {
+            thead.innerHTML = '';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px; color: #888;">No data to display</td></tr>';
+            document.getElementById('pagination').innerHTML = '';
+            return;
+        }
+        
+        if (currentView === 'items') {
+            thead.innerHTML = '<tr><th>Date</th><th>Store</th><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>';
+        } else if (currentView === 'receipts') {
+            thead.innerHTML = '<tr><th>Date</th><th>Store</th><th>Source</th><th>Items</th><th>Total</th></tr>';
+        } else if (currentView === 'stores') {
+            thead.innerHTML = '<tr><th>Store</th><th>Source</th><th>Visits</th><th>Items</th><th>Total Spent</th></tr>';
+        }
+        
+        const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageData = sortedData.slice(start, end);
+        
+        let html = '';
+        pageData.forEach(item => {
+            const displayDate = normalizeDate(item.date) || '-';
+            
+            if (currentView === 'items') {
+                html += `<tr>
+                    <td>${displayDate}</td>
+                    <td>${item.store || '-'}</td>
+                    <td>${item.item_name || '-'}</td>
+                    <td>${item.quantity || 1}</td>
+                    <td>$${(item.unit_price || 0).toFixed(2)}</td>
+                    <td>$${(item.total_price || 0).toFixed(2)}</td>
+                </tr>`;
+            } else if (currentView === 'receipts') {
+                const receiptId = `receipt-${displayDate}-${(item.store || 'unknown').replace(/\s+/g, '-')}`;
+                html += `<tr class="receipt-row" onclick="toggleReceiptDetails('${receiptId}')">
+                    <td>${displayDate}</td>
+                    <td>${item.store || '-'}</td>
+                    <td>${item.source || '-'}</td>
+                    <td>${item.items}</td>
+                    <td>$${item.total.toFixed(2)}</td>
+                </tr>`;
+                html += `<tr class="receipt-details" id="${receiptId}">
+                    <td colspan="5">
+                        <table class="receipt-items-table">`;
+                if (item.itemsList && item.itemsList.length > 0) {
+                    item.itemsList.forEach(itm => {
+                        html += `<tr>
+                            <td style="width: 50%;">${itm.item_name || '-'}</td>
+                            <td style="width: 15%; text-align: center;">x${itm.quantity || 1}</td>
+                            <td style="width: 17%; text-align: right;">$${(itm.unit_price || 0).toFixed(2)}</td>
+                            <td style="width: 18%; text-align: right;">$${(itm.total_price || 0).toFixed(2)}</td>
+                        </tr>`;
+                    });
+                } else {
+                    html += `<tr><td colspan="4" style="text-align: center; color: #888;">No items</td></tr>`;
+                }
+                html += `</table></td></tr>`;
+            } else if (currentView === 'stores') {
+                html += `<tr>
+                    <td>${item.store}</td>
+                    <td>${item.source || '-'}</td>
+                    <td>${item.receipts}</td>
+                    <td>${item.items}</td>
+                    <td>$${item.total.toFixed(2)}</td>
+                </tr>`;
+            }
+        });
+        tbody.innerHTML = html;
+        
+        renderPagination(totalPages);
+    }
+
+    function renderPagination(totalPages) {
+        const pag = document.getElementById('pagination');
+        if (totalPages <= 1) {
+            pag.innerHTML = `<span class="page-info">Showing ${sortedData.length} items</span>`;
+            return;
+        }
+        
+        let html = '';
+        html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Prev</button>`;
+        
+        const maxButtons = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        
+        if (endPage - startPage < maxButtons - 1) {
+            startPage = Math.max(1, endPage - maxButtons + 1);
+        }
+        
+        if (startPage > 1) {
+            html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+            if (startPage > 2) html += `<span class="page-info">...</span>`;
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+        
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) html += `<span class="page-info">...</span>`;
+            html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+        }
+        
+        html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next &raquo;</button>`;
+        html += `<span class="page-info">(${sortedData.length} total)</span>`;
+        
+        pag.innerHTML = html;
+    }
+
+    function goToPage(page) {
+        const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        renderTable();
+        document.getElementById('dataDisplay').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function toggleReceiptDetails(receiptId) {
+        const detailsRow = document.getElementById(receiptId);
+        const parentRow = detailsRow.previousElementSibling;
+        
+        if (detailsRow.classList.contains('show')) {
+            detailsRow.classList.remove('show');
+            parentRow.classList.remove('expanded');
+        } else {
+            detailsRow.classList.add('show');
+            parentRow.classList.add('expanded');
+        }
+    }
+
+    // Initialize data view on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        if (allTransactions && allTransactions.length > 0) {
+            sortData();
+        }
+    });
+
+    // Show success/error messages from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    const msgType = urlParams.get('type');
+    if (message) {
+        showAlert(decodeURIComponent(message), msgType || 'success');
+    }
+</script>
+        </div>
+    </div>
+</body>
+</html>

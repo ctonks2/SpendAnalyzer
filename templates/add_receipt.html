@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Receipt - Spend Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            
+            <!-- Prominent Back Button -->
+            <a href="/?user_id={{ user_id }}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+                ← Back to Dashboard
+            </a>
+            
+            <h2 class="section-title">Add New Receipt</h2>
+
+{% if not user_id %}
+<div class="no-data">
+    <p>Please <a href="/">load a user</a> first to add receipts.</p>
+</div>
+{% else %}
+<form method="POST" action="{{ url_for('add_receipt_page') }}" id="receiptForm">
+    <input type="hidden" name="user_id" value="{{ user_id }}">
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        <!-- Left Column: Receipt Details -->
+        <div>
+            <h3 style="margin-bottom: 15px;">Receipt Details</h3>
+            
+            <div class="form-group">
+                <label>Store Number *</label>
+                <input type="text" name="store_number" id="storeNumber" required placeholder="e.g., 1234">
+            </div>
+            
+            <div class="form-group">
+                <label>Store Name</label>
+                <input type="text" name="store_name" id="storeName" placeholder="e.g., Walmart">
+            </div>
+            
+            <div class="form-group">
+                <label>Date *</label>
+                <input type="date" name="date" id="receiptDate" required>
+            </div>
+        </div>
+        
+        <!-- Right Column: Items -->
+        <div>
+            <h3 style="margin-bottom: 15px;">Items</h3>
+            
+            <div id="itemsContainer">
+                <!-- Item template that will be cloned -->
+                <div class="item-entry" data-index="0">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Item Name *</label>
+                            <input type="text" name="items[0][name]" required placeholder="Product name">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Price ($) *</label>
+                            <input type="number" name="items[0][price]" step="0.01" min="0" required placeholder="0.00">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Qty</label>
+                            <input type="number" name="items[0][qty]" value="1" min="1">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Discount ($)</label>
+                            <input type="number" name="items[0][discount]" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="removeItem(this)" style="padding: 8px 12px; color: var(--danger);">✕</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="button" class="btn btn-secondary" onclick="addNewItem()" style="width: 100%; margin-top: 10px;">
+                + Add Another Item
+            </button>
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px; text-align: center;">
+        <button type="submit" class="btn" style="padding: 15px 50px; font-size: 1.1rem;">
+            💾 Save Receipt
+        </button>
+    </div>
+</form>
+{% endif %}
+
+<script>
+    // Set today's date as default
+    document.addEventListener('DOMContentLoaded', function() {
+        const receiptDate = document.getElementById('receiptDate');
+        if (receiptDate && !receiptDate.value) {
+            receiptDate.valueAsDate = new Date();
+        }
+    });
+    
+    let itemIndex = 0;
+    
+    function addNewItem() {
+        itemIndex++;
+        const container = document.getElementById('itemsContainer');
+        const newItem = document.createElement('div');
+        newItem.className = 'item-entry';
+        newItem.dataset.index = itemIndex;
+        newItem.innerHTML = `
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Item Name *</label>
+                    <input type="text" name="items[${itemIndex}][name]" required placeholder="Product name">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Price ($) *</label>
+                    <input type="number" name="items[${itemIndex}][price]" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Qty</label>
+                    <input type="number" name="items[${itemIndex}][qty]" value="1" min="1">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Discount ($)</label>
+                    <input type="number" name="items[${itemIndex}][discount]" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="removeItem(this)" style="padding: 8px 12px; color: var(--danger);">✕</button>
+            </div>
+        `;
+        container.appendChild(newItem);
+        // Focus on the new item name field
+        newItem.querySelector('input[type="text"]').focus();
+    }
+    
+    function removeItem(btn) {
+        const container = document.getElementById('itemsContainer');
+        const entries = container.querySelectorAll('.item-entry');
+        
+        // Don't remove if it's the only item
+        if (entries.length <= 1) {
+            alert('You need at least one item on the receipt.');
+            return;
+        }
+        
+        btn.closest('.item-entry').remove();
+    }
+    
+    // Show success/error messages from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    const msgType = urlParams.get('type');
+    if (message) {
+        const alertEl = document.getElementById('alert');
+        if (alertEl) {
+            alertEl.textContent = decodeURIComponent(message);
+            alertEl.className = 'alert alert-' + (msgType || 'success');
+            alertEl.classList.remove('hidden');
+            setTimeout(() => alertEl.classList.add('hidden'), 5000);
+        }
+    }
+</script>
+        </div>
+    </div>
+</body>
+</html>

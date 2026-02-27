@@ -21,10 +21,11 @@
 </div>
 
 <div class="tabs">
-    <button class="tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
-    <button class="tab" onclick="showTab('add')">➕ Add Receipt</button>
-    <button class="tab" onclick="showTab('chat')">🤖 AI Insights</button>
-    <button class="tab" onclick="showTab('saved')">📁 Saved Insights</button>
-    <button class="tab" onclick="showTab('data')">📋 View Data</button>
-    <button class="tab" onclick="showTab('settings')">⚙️ Settings</button>
+    <a href="/?user_id={{ user_id }}" class="tab active" style="text-decoration: none;">📊 Dashboard</a>
+    <a href="/add?user_id={{ user_id }}" class="tab" style="text-decoration: none;">➕ Add Receipt</a>
+    <a href="/import?user_id={{ user_id }}" class="tab" style="text-decoration: none;">📥 Import</a>
+    <a href="/chat?user_id={{ user_id }}" class="tab" style="text-decoration: none;">🤖 AI Insights</a>
+    <a href="/saved?user_id={{ user_id }}" class="tab" style="text-decoration: none;">📁 Saved Insights</a>
+    <a href="/data?user_id={{ user_id }}" class="tab" style="text-decoration: none;">📋 View Data</a>
+    <a href="/settings?user_id={{ user_id }}" class="tab" style="text-decoration: none;">⚙️ Settings</a>
 </div>

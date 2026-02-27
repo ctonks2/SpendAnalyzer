@@ -43678,5 +43678,49 @@
     "orderno": "110",
     "product_upc": 23355100000,
     "source": "Smiths"
+  },
+  {
+    "user_id": "ct",
+    "item_name": "Chicken Thighs",
+    "unit_price": 10.99,
+    "quantity": 1,
+    "total_price": 8.99,
+    "store": "022626",
+    "source": "Walmart",
+    "date": "2026-02-26",
+    "orderno": "022626.2026-02-26"
+  },
+  {
+    "user_id": "ct",
+    "item_name": "DISCOUNT (Chicken Thighs)",
+    "unit_price": -2.0,
+    "quantity": 1,
+    "total_price": -2.0,
+    "store": "022626",
+    "source": "Walmart",
+    "date": "2026-02-26",
+    "orderno": "022626.2026-02-26"
+  },
+  {
+    "user_id": "ct",
+    "item_name": "Broccoli",
+    "unit_price": 2.34,
+    "quantity": 1,
+    "total_price": 2.34,
+    "store": "022626",
+    "source": "Walmart",
+    "date": "2026-02-26",
+    "orderno": "022626.2026-02-26"
+  },
+  {
+    "user_id": "ct",
+    "item_name": "RECEIPT_TOTAL",
+    "unit_price": 0,
+    "quantity": 1,
+    "total_price": 11.33,
+    "store": "022626",
+    "source": "Walmart",
+    "date": "2026-02-26",
+    "orderno": "022626.2026-02-26"
   }
 ]

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Spend Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            
+            <!-- Prominent Back Button -->
+            <a href="/?user_id={{ user_id }}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+                ← Back to Dashboard
+            </a>
+            
+            <h2 class="section-title">⚙️ Settings & Data Management</h2>
+
+{% if not user_id %}
+<div class="no-data">
+    <p>Please <a href="/">load a user</a> first to manage settings.</p>
+</div>
+{% else %}
+<div style="margin-bottom: 30px;">
+    <h3 style="margin-bottom: 15px; color: #dc3545;">Danger Zone</h3>
+    <p style="color: #666; margin-bottom: 15px;">
+        Permanently delete all your data. This cannot be undone.
+    </p>
+    <button class="btn btn-danger" onclick="deleteAllData()">Delete All My Data</button>
+</div>
+{% endif %}
+
+<script>
+    const userId = '{{ user_id }}';
+
+    function showAlert(message, type) {
+        const alert = document.getElementById('alert');
+        alert.textContent = message;
+        alert.className = 'alert alert-' + type;
+        alert.classList.remove('hidden');
+        setTimeout(() => alert.classList.add('hidden'), 5000);
+    }
+
+    function deleteAllData() {
+        if (!confirm('Are you sure you want to delete ALL your data? This cannot be undone.')) return;
+        
+        fetch('/api/delete_data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('All data deleted', 'success');
+                setTimeout(() => window.location.href = '/', 1500);
+            }
+        });
+    }
+
+    // Show success/error messages from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    const msgType = urlParams.get('type');
+    if (message) {
+        showAlert(decodeURIComponent(message), msgType || 'success');
+    }
+</script>
+        </div>
+    </div>
+</body>
+</html>

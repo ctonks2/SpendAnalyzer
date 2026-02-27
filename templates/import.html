@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Files - Spend Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            
+            <!-- Prominent Back Button -->
+            <a href="/?user_id={{ user_id }}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+                ← Back to Dashboard
+            </a>
+            
+            <h2 class="section-title">📥 Import from Files</h2>
+
+{% if not user_id %}
+<div class="no-data">
+    <p>Please <a href="/">load a user</a> first to import files.</p>
+</div>
+{% else %}
+<p style="color: #666; margin-bottom: 15px;">
+    Select files from the <code>data/raw</code> folder to import.
+</p>
+<button class="btn btn-secondary" onclick="loadFilesList()" style="margin-bottom: 20px;">🔄 Refresh File List</button>
+
+<div id="filesList" class="items-list" style="max-height: 400px; overflow-y: auto;">
+    <p style="color: #888; text-align: center;">Click "Refresh" to load available files</p>
+</div>
+{% endif %}
+
+<script>
+    function showAlert(message, type) {
+        const alert = document.getElementById('alert');
+        alert.textContent = message;
+        alert.className = 'alert alert-' + type;
+        alert.classList.remove('hidden');
+        setTimeout(() => alert.classList.add('hidden'), 5000);
+    }
+
+    function loadFilesList() {
+        const userId = '{{ user_id }}';
+        if (!userId) {
+            showAlert('Please load a user first', 'error');
+            return;
+        }
+        
+        const filesList = document.getElementById('filesList');
+        filesList.innerHTML = '<p style="color: #888; text-align: center;">Loading...</p>';
+        
+        fetch('/api/list_files?user_id=' + encodeURIComponent(userId))
+        .then(r => r.json())
+        .then(result => {
+            if (result.files && result.files.length > 0) {
+                let html = '';
+                result.files.forEach(file => {
+                    const statusClass = file.imported ? 'color: #28a745;' : '';
+                    const statusIcon = file.imported ? '✓' : '';
+                    const btnDisabled = file.imported ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : '';
+                    const escapedName = file.name.replace(/'/g, "\\'");
+                    html += `<div class="item-row" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="${statusClass}">${statusIcon} ${file.name}</span>
+                        <button class="btn" style="padding: 6px 15px; font-size: 0.85rem;" 
+                            onclick="importSingleFile('${escapedName}')" ${btnDisabled}>
+                            ${file.imported ? 'Imported' : 'Import'}
+                        </button>
+                    </div>`;
+                });
+                filesList.innerHTML = html;
+            } else if (result.error) {
+                filesList.innerHTML = `<p style="color: #dc3545; text-align: center;">${result.error}</p>`;
+            } else {
+                filesList.innerHTML = '<p style="color: #888; text-align: center;">No files found in data/raw folder</p>';
+            }
+        })
+        .catch(err => {
+            filesList.innerHTML = '<p style="color: #dc3545; text-align: center;">Error loading files</p>';
+        });
+    }
+
+    function importSingleFile(filename) {
+        const userId = '{{ user_id }}';
+        if (!userId) {
+            showAlert('Please load a user first', 'error');
+            return;
+        }
+        
+        showAlert('Importing ' + filename + '...', 'success');
+        
+        fetch('/api/import_file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, filename: filename })
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                showAlert(`Imported ${result.imported} items from ${filename}!`, 'success');
+                loadFilesList();
+            } else {
+                showAlert('Error: ' + result.error, 'error');
+            }
+        })
+        .catch(err => showAlert('Error importing file', 'error'));
+    }
+
+    // Auto-refresh file list on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if user_id %}
+        loadFilesList();
+        {% endif %}
+    });
+
+    // Show success/error messages from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    const msgType = urlParams.get('type');
+    if (message) {
+        showAlert(decodeURIComponent(message), msgType || 'success');
+    }
+</script>
+        </div>
+    </div>
+</body>
+</html>
