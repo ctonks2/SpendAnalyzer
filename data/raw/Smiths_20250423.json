@@ -42,9 +42,7 @@
             { 
               "tendertype": "Credit" 
             } 
- 
- 
-11 
+
           ], 
           "items": [ 
             { 
@@ -97,9 +95,7 @@
             }, 
             { 
               "purchasedescription": "SA FUSION COMBO A", 
- 
- 
-12 
+
               "productupc": "00085687307026", 
               "retailamt": "14.99", 
               "customerloyamt": "14.99" 
@@ -152,9 +148,7 @@
             { 
               "purchasedescription": "PRSL TROTTOLE", 
               "productupc": "00001111009011", 
- 
- 
-13 
+
               "retailamt": "1.99", 
               "customerloyamt": "1.99" 
             }, 
@@ -207,9 +201,7 @@
               "customerloyamt": "10.00" 
             }, 
             { 
- 
- 
-14 
+
               "purchasedescription": "MRRY SPECK HAM SLCD", 
               "productupc": "00081794401166", 
               "retailamt": "8.99", 
@@ -262,9 +254,7 @@
               "productupc": "00060504904053", 
               "retailamt": "0.59", 
               "customerloyamt": "0.59" 
- 
- 
-15 
+
             }, 
             { 
               "purchasedescription": "DESCHUTES KING KRSPY 6P C", 
@@ -317,9 +307,7 @@
               "retailamt": "10.50", 
               "customerloyamt": "10.50" 
             } 
- 
- 
-16 
+
           ] 
         }, 
         { 
@@ -372,9 +360,7 @@
           "orderno": "60", 
           "total_amount_prior_to_discounts": "87.38", 
           "tenders": [ 
- 
- 
-17 
+
             { 
               "tendertype": "Credit" 
             } 
@@ -427,9 +413,7 @@
               "productupc": "00000000002511", 
               "retailamt": "0.79", 
               "customerloyamt": "0.79" 
- 
- 
-18 
+
             }, 
             { 
               "purchasedescription": "WSFL TERRARIUM HOPEWELL", 
@@ -482,9 +466,7 @@
               "retailamt": "4.99", 
               "customerloyamt": "2.99" 
             }, 
- 
- 
-19 
+
             { 
               "purchasedescription": "HPPY RNGFR LG GD A EGG", 
               "productupc": "00088742200000", 
@@ -537,9 +519,7 @@
               "purchasedescription": "PHLLY CREAM CHEESE SPREAD", 
               "productupc": "00002100000014", 
               "retailamt": "4.59", 
- 
- 
-20 
+
               "customerloyamt": "4.00" 
             }, 
             { 
@@ -592,9 +572,7 @@
             }, 
             { 
               "purchasedescription": "MRRY OLIVE BAR BULK", 
- 
- 
-21 
+
               "productupc": "00000000002369", 
               "retailamt": "4.10", 
               "customerloyamt": "4.10" 
@@ -647,9 +625,7 @@
             { 
               "purchasedescription": "PRSL ULT CHO CHK CKY 5CT", 
               "productupc": "00001111062092", 
- 
- 
-22 
+
               "retailamt": "5.99", 
               "customerloyamt": "5.99" 
             } 
@@ -702,9 +678,7 @@
               "purchasedescription": "SNWFX FRSH HONEYDEW BOWL", 
               "productupc": "00063912389414", 
               "retailamt": "5.00", 
- 
- 
-23 
+
               "customerloyamt": "5.00" 
             } 
           ] 
@@ -757,9 +731,7 @@
               "productupc": "00004300009100", 
               "retailamt": "12.99", 
               "customerloyamt": "9.99" 
- 
- 
-24 
+
             }, 
             { 
               "purchasedescription": "CRLT OTG PWDRD DRNK 44CT", 
@@ -812,9 +784,7 @@
           "date": "05/31/2023 00:00:00", 
           "time": "12:18:00", 
           "division": "706", 
- 
- 
-25 
+
           "store": "131  ", 
           "orderno": "47", 
           "total_amount_prior_to_discounts": "27.75", 
@@ -867,9 +837,7 @@
         }, 
         { 
           "date": "06/01/2023 00:00:00", 
- 
- 
-26 
+
           "time": "15:32:00", 
           "division": "706", 
           "store": "279  ", 
@@ -922,9 +890,7 @@
               "productupc": "00001111008391", 
               "retailamt": "4.99", 
               "customerloyamt": "2.99" 
- 
- 
-27 
+
             }, 
             { 
               "purchasedescription": "ST OATMK CRMR SW CRM", 
@@ -977,9 +943,7 @@
             { 
               "purchasedescription": "CENTO SAN MRZNO PEELD TMT", 
               "productupc": "00007079640008", 
- 
- 
-28 
+
               "retailamt": "5.49", 
               "customerloyamt": "5.49" 
             }, 
@@ -1032,9 +996,7 @@
               "customerloyamt": "2.99" 
             }, 
             { 
- 
- 
-29 
+
               "purchasedescription": "STO 50/50 BLEND", 
               "productupc": "00001111091471", 
               "retailamt": "3.49", 
@@ -1087,9 +1049,7 @@
               "productupc": "00009795611668", 
               "retailamt": "3.49", 
               "customerloyamt": "3.49" 
- 
- 
-30 
+
             }, 
             { 
               "purchasedescription": "CLSN KOSHER PICKLE SLICES", 
@@ -1142,9 +1102,7 @@
               "retailamt": "2.99", 
               "customerloyamt": "2.00" 
             } 
- 
- 
-31 
+
           ] 
         }, 
         { 
@@ -1197,9 +1155,7 @@
               "purchasedescription": "LIMES", 
               "productupc": "00000000004048", 
               "retailamt": "2.95", 
- 
- 
-32 
+
               "customerloyamt": "2.95" 
             }, 
             { 
@@ -1252,9 +1208,7 @@
             }, 
             { 
               "purchasedescription": "ONBRDR TORTILLA CHIPS", 
- 
- 
-33 
+
               "productupc": "00078113871015", 
               "retailamt": "4.29", 
               "customerloyamt": "4.29" 
@@ -1307,9 +1261,7 @@
             { 
               "purchasedescription": "PTPR DUCK JERKY", 
               "productupc": "00001111003786", 
- 
- 
-34 
+
               "retailamt": "21.99", 
               "customerloyamt": "19.99" 
             }, 
@@ -1362,9 +1314,7 @@
               "purchasedescription": "QKER LIFE CINNAMON CEREAL", 
               "productupc": "00003000056238", 
               "retailamt": "5.49", 
- 
- 
-35 
+
               "customerloyamt": "4.99" 
             }, 
             { 
@@ -1417,9 +1367,7 @@
               "productupc": "00085687307075", 
               "retailamt": "14.49", 
               "customerloyamt": "14.49" 
- 
- 
-36 
+
             }, 
             { 
               "purchasedescription": "MONSTER ENERGY ZERO ULTRA", 
@@ -1472,9 +1420,7 @@
               "retailamt": "3.29", 
               "customerloyamt": "2.99" 
             }, 
- 
- 
-37 
+
             { 
               "purchasedescription": "RNCC ROSEMARY RSN PCN CKY", 
               "productupc": "00006124371165", 
@@ -1527,9 +1473,7 @@
               "purchasedescription": "PRSL PROSCIUTTO", 
               "productupc": "00001111099231", 
               "retailamt": "10.98", 
- 
- 
-38 
+
               "customerloyamt": "7.98" 
             }, 
             { 
@@ -1582,9 +1526,7 @@
             }, 
             { 
               "purchasedescription": "RICO HNDMD CORN TORTILLAS", 
- 
- 
-39 
+
               "productupc": "00065366003003", 
               "retailamt": "7.98", 
               "customerloyamt": "7.98" 
@@ -1637,9 +1579,7 @@
           ] 
         }, 
         { 
- 
- 
-40 
+
           "date": "06/28/2023 00:00:00", 
           "time": "10:55:00", 
           "division": "706", 
@@ -1692,9 +1632,7 @@
         }, 
         { 
           "date": "07/01/2023 00:00:00", 
- 
- 
-41 
+
           "time": "15:25:00", 
           "division": "706", 
           "store": "030  ", 
@@ -1747,9 +1685,7 @@
           "total_amount_prior_to_discounts": "20.69", 
           "tenders": [ 
             { 
- 
- 
-42 
+
               "tendertype": "Credit" 
             } 
           ], 
@@ -1802,9 +1738,7 @@
           "tenders": [ 
             { 
               "tendertype": "Credit" 
- 
- 
-43 
+
             } 
           ], 
           "items": [ 
@@ -1857,9 +1791,7 @@
               "customerloyamt": "10.73" 
             }, 
             { 
- 
- 
-44 
+
               "purchasedescription": "MMS PEANUT CHOCOLATE", 
               "productupc": "00004000000032", 
               "retailamt": "1.49", 
@@ -1912,9 +1844,7 @@
           "total_amount_prior_to_discounts": "60.87", 
           "tenders": [ 
             { 
- 
- 
-45 
+
               "tendertype": "Credit" 
             } 
           ], 
@@ -1967,9 +1897,7 @@
               "retailamt": "0.66", 
               "customerloyamt": "0.66" 
             }, 
- 
- 
-46 
+
             { 
               "purchasedescription": "PK SHLD ARM PC WHL BI COV", 
               "productupc": "00027316800000", 
@@ -2022,9 +1950,7 @@
               "customerloyamt": "4.99" 
             }, 
             { 
- 
- 
-47 
+
               "purchasedescription": "PRSL GRA DRK ROB TST SYRP", 
               "productupc": "00001111081816", 
               "retailamt": "8.79", 
@@ -2077,9 +2003,7 @@
               "tendertype": "Credit" 
             } 
           ], 
- 
- 
-48 
+
           "items": [ 
             { 
               "purchasedescription": "SNYDR BUTTER SNAPS PRTZLS", 
@@ -2132,9 +2056,7 @@
             { 
               "purchasedescription": "CRLT RSP LMND DRK MX 10CT", 
               "productupc": "00004300001120", 
- 
- 
-49 
+
               "retailamt": "2.99", 
               "customerloyamt": "1.69" 
             }, 
@@ -2187,9 +2109,7 @@
               "customerloyamt": "3.49" 
             }, 
             { 
- 
- 
-50 
+
               "purchasedescription": "BKDCHTO FLAMIN HOT SNCKS", 
               "productupc": "00002840018391", 
               "retailamt": "4.19", 
@@ -2242,9 +2162,7 @@
             }, 
             { 
               "purchasedescription": "HPPY RNGFR LG GD A EGG", 
- 
- 
-51 
+
               "productupc": "00088742200000", 
               "retailamt": "4.99", 
               "customerloyamt": "4.99" 
@@ -2296,14 +2214,12 @@
         { 
           "date": "08/21/2023 00:00:00", 
           "time": "14:55:00", 
-          "division": "706", 
- 
- 
-52 
+
           "store": "030  ", 
           "orderno": "88", 
           "total_amount_prior_to_discounts": "39.38", 
           "tenders": [ 
+
             { 
               "tendertype": "Credit" 
             } 
@@ -2352,9 +2268,7 @@
               "purchasedescription": "MTN DEW ZERO SUGAR", 
               "productupc": "00001200019143", 
               "retailamt": "2.39", 
- 
- 
-53 
+
               "customerloyamt": "2.39" 
             }, 
             { 
@@ -2407,9 +2321,7 @@
             } 
           ] 
         }, 
- 
- 
-54 
+
         { 
           "date": "08/26/2023 00:00:00", 
           "time": "17:24:00", 
@@ -2462,9 +2374,7 @@
           ] 
         }, 
         { 
- 
- 
-55 
+
           "date": "08/29/2023 00:00:00", 
           "time": "11:59:00", 
           "division": "706", 
@@ -2517,9 +2427,7 @@
               "purchasedescription": "BCKV SIGNTR MRBL RYE LOAF", 
               "productupc": "00077403451128", 
               "retailamt": "3.49", 
- 
- 
-56 
+
               "customerloyamt": "3.49" 
             }, 
             { 
@@ -2572,9 +2480,7 @@
               "productupc": "00001111020117", 
               "retailamt": "6.99", 
               "customerloyamt": "6.99" 
- 
- 
-57 
+
             }, 
             { 
               "purchasedescription": "BKRY SS BAGELS", 
@@ -2627,9 +2533,7 @@
               "retailamt": "2.99", 
               "customerloyamt": "2.99" 
             }, 
- 
- 
-58 
+
             { 
               "purchasedescription": "MONSTER ENERGY ZERO ULTRA", 
               "productupc": "00007084701247", 
@@ -2682,9 +2586,7 @@
               "purchasedescription": "FRGO CHS HD STRG CHS 16CT", 
               "productupc": "00004171623216", 
               "retailamt": "7.99", 
- 
- 
-59 
+
               "customerloyamt": "7.99" 
             }, 
             { 
@@ -2737,9 +2639,7 @@
               "productupc": "00001111062092", 
               "retailamt": "5.99", 
               "customerloyamt": "5.99" 
- 
- 
-60 
+
             } 
           ] 
         }, 
@@ -2792,9 +2692,7 @@
             { 
               "purchasedescription": "KRO REAL CREAM TOPPING", 
               "productupc": "00001111080909", 
- 
- 
-61 
+
               "retailamt": "3.99", 
               "customerloyamt": "3.99" 
             }, 
@@ -2847,9 +2745,7 @@
               "customerloyamt": "12.99" 
             }, 
             { 
- 
- 
-62 
+
               "purchasedescription": "OX SRIRACHA HOT CHI", 
               "productupc": "00885108128300", 
               "retailamt": "5.49", 
@@ -2902,9 +2798,7 @@
             }, 
             { 
               "purchasedescription": "KRO ASIAN CHOP SALAD KIT", 
- 
- 
-63 
+
               "productupc": "00001111091098", 
               "retailamt": "3.79", 
               "customerloyamt": "3.34" 
@@ -2957,9 +2851,7 @@
             { 
               "purchasedescription": "RNFG OR TRKY PINEWHEELS", 
               "productupc": "00082676615585", 
- 
- 
-64 
+
               "retailamt": "6.00", 
               "customerloyamt": "6.00" 
             }, 
@@ -3012,9 +2904,7 @@
               "purchasedescription": "MMS PEANUT CHOCOLATE", 
               "productupc": "00004000000032", 
               "retailamt": "1.49", 
- 
- 
-65 
+
               "customerloyamt": "1.25" 
             }, 
             { 
@@ -3067,9 +2957,7 @@
               "productupc": "00085690100643", 
               "retailamt": "7.99", 
               "customerloyamt": "7.99" 
- 
- 
-66 
+
             }, 
             { 
               "purchasedescription": "HPPY RNGFR LG GD A EGG", 
@@ -3122,9 +3010,7 @@
               "retailamt": "0.80", 
               "customerloyamt": "0.80" 
             }, 
- 
- 
-67 
+
             { 
               "purchasedescription": "SMOKED GOUDA", 
               "productupc": "00028647910000", 
@@ -3177,9 +3063,7 @@
               "purchasedescription": "KRO BIG WHL CH CHP CK 6CT", 
               "productupc": "00001111009374", 
               "retailamt": "5.99", 
- 
- 
-68 
+
               "customerloyamt": "2.50" 
             }, 
             { 
@@ -3232,9 +3116,7 @@
           "division": "706", 
           "store": "131  ", 
           "orderno": "26", 
- 
- 
-69 
+
           "total_amount_prior_to_discounts": "57.94", 
           "tenders": [ 
             { 
@@ -3287,9 +3169,7 @@
             { 
               "purchasedescription": "BEANS GREEN RPC", 
               "productupc": "00000000004066", 
- 
- 
-70 
+
               "retailamt": "1.27", 
               "customerloyamt": "1.27" 
             }, 
@@ -3342,9 +3222,7 @@
               "purchasedescription": "MONSTER ULTRA ENRGY SNRSE", 
               "productupc": "00007084702090", 
               "retailamt": "2.99", 
- 
- 
-71 
+
               "customerloyamt": "2.99" 
             }, 
             { 
@@ -3397,9 +3275,7 @@
             }, 
             { 
               "purchasedescription": "MONSTER ENERGY ZERO ULTRA", 
- 
- 
-72 
+
               "productupc": "00007084701247", 
               "retailamt": "2.99", 
               "customerloyamt": "2.99" 
@@ -3452,9 +3328,7 @@
             { 
               "purchasedescription": "RGF CHK  PPRJCK CHS BRTO", 
               "productupc": "00085004938401", 
- 
- 
-73 
+
               "retailamt": "3.99", 
               "customerloyamt": "3.99" 
             }, 
@@ -3507,9 +3381,7 @@
           "time": "09:46:00", 
           "division": "706", 
           "store": "131  ", 
- 
- 
-74 
+
           "orderno": "47", 
           "total_amount_prior_to_discounts": "38.96", 
           "tenders": [ 
@@ -3562,9 +3434,7 @@
             } 
           ] 
         }, 
- 
- 
-75 
+
         { 
           "date": "10/20/2023 00:00:00", 
           "time": "15:56:00", 
@@ -3617,9 +3487,7 @@
             { 
               "purchasedescription": "SNPL CLSC FRT FLV DRNK MX", 
               "productupc": "00085002726357", 
- 
- 
-76 
+
               "retailamt": "4.99", 
               "customerloyamt": "4.79" 
             }, 
@@ -3672,9 +3540,7 @@
               "customerloyamt": "3.34" 
             }, 
             { 
- 
- 
-77 
+
               "purchasedescription": "PS RUSTIC CIABATTA LOAF", 
               "productupc": "00001111061367", 
               "retailamt": "4.49", 
@@ -3727,9 +3593,7 @@
               "productupc": "00003600054167", 
               "retailamt": "7.99", 
               "customerloyamt": "6.99" 
- 
- 
-78 
+
             }, 
             { 
               "purchasedescription": "SKITTLS TRPCL DRK MX 20CT", 
@@ -3782,9 +3646,7 @@
               "retailamt": "10.99", 
               "customerloyamt": "8.99" 
             } 
- 
- 
-79 
+
           ] 
         }, 
         { 
@@ -3837,9 +3699,7 @@
               "customerloyamt": "1.99" 
             }, 
             { 
- 
- 
-80 
+
               "purchasedescription": "FGOR CRISPY DILLIES", 
               "productupc": "00078735917683", 
               "retailamt": "3.19", 
@@ -3892,9 +3752,7 @@
         { 
           "date": "11/03/2023 00:00:00", 
           "time": "15:23:00", 
- 
- 
-81 
+
           "division": "706", 
           "store": "131  ", 
           "orderno": "59", 
@@ -3947,9 +3805,7 @@
               "retailamt": "14.49", 
               "customerloyamt": "14.49" 
             }, 
- 
- 
-82 
+
             { 
               "purchasedescription": "BKRY SS BAGELS", 
               "productupc": "00000000002511", 
@@ -4002,9 +3858,7 @@
               "purchasedescription": "MONSTER ULTRA PARADISE", 
               "productupc": "00007084703308", 
               "retailamt": "2.99", 
- 
- 
-83 
+
               "customerloyamt": "2.99" 
             } 
           ] 
@@ -4057,9 +3911,7 @@
               "productupc": "00004886722334", 
               "retailamt": "5.49", 
               "customerloyamt": "5.49" 
- 
- 
-84 
+
             }, 
             { 
               "purchasedescription": "SPWD GARLIC MINCED", 
@@ -4112,9 +3964,7 @@
             { 
               "purchasedescription": "CILANTRO BUNCH RPC", 
               "productupc": "00000000004889", 
- 
- 
-85 
+
               "retailamt": "0.89", 
               "customerloyamt": "0.89" 
             }, 
@@ -4167,9 +4017,7 @@
               "customerloyamt": "0.75" 
             }, 
             { 
- 
- 
-86 
+
               "purchasedescription": "STRKST BLD BFFL CHCKN PCH", 
               "productupc": "00008000051766", 
               "retailamt": "6.87", 
@@ -4222,9 +4070,7 @@
             }, 
             { 
               "purchasedescription": "FRNDLYS STRWBRY CHS CK SN", 
- 
- 
-87 
+
               "productupc": "00002983970019", 
               "retailamt": "2.99", 
               "customerloyamt": "2.99" 
@@ -4277,9 +4123,7 @@
               "retailamt": "4.39", 
               "customerloyamt": "4.39" 
             }, 
- 
- 
-88 
+
             { 
               "purchasedescription": "SUNKIST ORANGE STG DRINK", 
               "productupc": "00007239232402", 
@@ -4332,9 +4176,7 @@
           ], 
           "items": [ 
             { 
- 
- 
-89 
+
               "purchasedescription": "NB SWT CRM", 
               "productupc": "00005000080164", 
               "retailamt": "6.29", 
@@ -4387,9 +4229,7 @@
               "productupc": "00007786500152", 
               "retailamt": "6.99", 
               "customerloyamt": "6.49" 
- 
- 
-90 
+
             }, 
             { 
               "purchasedescription": "NSTL OTSHN VAR FRT 12CT", 
@@ -4442,9 +4282,7 @@
               "retailamt": "1.59", 
               "customerloyamt": "1.59" 
             }, 
- 
- 
-91 
+
             { 
               "purchasedescription": "CRUSH SF VRTY PK 30CT", 
               "productupc": "00085000376677", 
@@ -4497,9 +4335,7 @@
               "purchasedescription": "SA LIVING COLOR ROLL", 
               "productupc": "00085687307045", 
               "retailamt": "14.49", 
- 
- 
-92 
+
               "customerloyamt": "14.49" 
             }, 
             { 
@@ -4552,9 +4388,7 @@
             }, 
             { 
               "purchasedescription": "HTGF CHK THIGH BLSL", 
- 
- 
-93 
+
               "productupc": "00021086500000", 
               "retailamt": "10.38", 
               "customerloyamt": "10.38" 
@@ -4607,9 +4441,7 @@
           "tenders": [ 
             { 
               "tendertype": "Credit" 
- 
- 
-94 
+
             } 
           ], 
           "items": [ 
@@ -4662,9 +4494,7 @@
         }, 
         { 
           "date": "12/07/2023 00:00:00", 
- 
- 
-95 
+
           "time": "17:18:00", 
           "division": "706", 
           "store": "131  ", 
@@ -4717,9 +4547,7 @@
               "productupc": "00063912389419", 
               "retailamt": "5.00", 
               "customerloyamt": "5.00" 
- 
- 
-96 
+
             }, 
             { 
               "purchasedescription": "GATORADE ZERO GLR FR 10CT", 
@@ -4772,9 +4600,7 @@
             { 
               "purchasedescription": "PRESS SYNERGY VTY 12PK CN", 
               "productupc": "00085231300495", 
- 
- 
-97 
+
               "retailamt": "19.99", 
               "customerloyamt": "15.99" 
             }, 
@@ -4827,9 +4653,7 @@
               "customerloyamt": "13.99" 
             }, 
             { 
- 
- 
-98 
+
               "purchasedescription": "SNYDR BUTTER SNAPS PRTZLS", 
               "productupc": "00007797503405", 
               "retailamt": "4.79", 
@@ -4882,9 +4706,7 @@
             } 
           ] 
         }, 
- 
- 
-99 
+
         { 
           "date": "12/17/2023 00:00:00", 
           "time": "12:01:00", 
@@ -4937,13 +4759,12 @@
             { 
               "purchasedescription": "KRO ASIAN CHOP SALAD KIT", 
               "productupc": "00001111091098", 
- 
- 
-100 
+
               "retailamt": "3.79", 
               "customerloyamt": "3.79" 
             }, 
             { 
+
               "purchasedescription": "BKRY SS BAGELS", 
               "productupc": "00000000002511", 
               "retailamt": "0.79", 
@@ -4992,13 +4813,12 @@
               "purchasedescription": "DR TEALS EPSM SLT COCO", 
               "productupc": "00081106801502", 
               "retailamt": "13.98", 
- 
- 
-101 
+
               "customerloyamt": "11.98" 
             }, 
             { 
               "purchasedescription": "SA FUSION COMBO B", 
+
               "productupc": "00085687307027", 
               "retailamt": "14.99", 
               "customerloyamt": "14.99" 
@@ -5047,9 +4867,7 @@
               "productupc": "00078142100205", 
               "retailamt": "3.99", 
               "customerloyamt": "3.99" 
- 
- 
-102 
+
             }, 
             { 
               "purchasedescription": "OSCM LNCHBL PEPRN PIZZA", 
@@ -5102,9 +4920,7 @@
               "retailamt": "4.79", 
               "customerloyamt": "3.99" 
             } 
- 
- 
-103 
+
           ] 
         }, 
         { 
@@ -5157,9 +4973,7 @@
               "customerloyamt": "6.49" 
             }, 
             { 
- 
- 
-104 
+
               "purchasedescription": "SA TUNA LOVER BENTO BOX", 
               "productupc": "00085687307149", 
               "retailamt": "14.49", 
@@ -5212,9 +5026,7 @@
             }, 
             { 
               "purchasedescription": "MONSTER ULTRA FIESTA", 
- 
- 
-105 
+
               "productupc": "00007084703462", 
               "retailamt": "2.99", 
               "customerloyamt": "0.00" 
@@ -5267,9 +5079,7 @@
             { 
               "purchasedescription": "PRSL CLD SMK SCKEYE SALMN", 
               "productupc": "00001111096419", 
- 
- 
-106 
+
               "retailamt": "8.99", 
               "customerloyamt": "6.29" 
             }, 
@@ -5322,9 +5132,7 @@
               "customerloyamt": "9.49" 
             }, 
             { 
- 
- 
-107 
+
               "purchasedescription": "PS DEMI FRENCH BAGUETTE", 
               "productupc": "00001111061364", 
               "retailamt": "1.00", 
@@ -5377,9 +5185,7 @@
               "productupc": "00089631500113", 
               "retailamt": "1.49", 
               "customerloyamt": "1.39" 
- 
- 
-108 
+
             }, 
             { 
               "purchasedescription": "BROCCOLI CROWNS", 
@@ -5432,9 +5238,7 @@
           "store": "131  ", 
           "orderno": "91", 
           "total_amount_prior_to_discounts": "49.34", 
- 
- 
-109 
+
           "tenders": [ 
             { 
               "tendertype": "Credit" 
@@ -5487,9 +5291,7 @@
           "orderno": "34", 
           "total_amount_prior_to_discounts": "35.27", 
           "tenders": [ 
- 
- 
-110 
+
             { 
               "tendertype": "Credit" 
             } 
@@ -5542,9 +5344,7 @@
             }, 
             { 
               "purchasedescription": "ST 72% DARK CHOC CHUNKS", 
- 
- 
-111 
+
               "productupc": "00001111012149", 
               "retailamt": "3.69", 
               "customerloyamt": "3.50" 
@@ -5597,9 +5397,7 @@
             { 
               "purchasedescription": "BBLL TKY ROAST WHT MT FZ", 
               "productupc": "00002265527487", 
- 
- 
-112 
+
               "retailamt": "27.98", 
               "customerloyamt": "27.98" 
             }, 
@@ -5652,9 +5450,7 @@
               "customerloyamt": "1.59" 
             }, 
             { 
- 
- 
-113 
+
               "purchasedescription": "KRO SALTED BTR STCKS 4CT", 
               "productupc": "00001111089301", 
               "retailamt": "4.19", 
@@ -5707,9 +5503,7 @@
               "productupc": "00007373106002", 
               "retailamt": "2.69", 
               "customerloyamt": "2.69" 
- 
- 
-114 
+
             }, 
             { 
               "purchasedescription": "SNPL CLSC FRT FLV DRNK MX", 
@@ -5762,9 +5556,7 @@
           "store": "030  ", 
           "orderno": "76", 
           "total_amount_prior_to_discounts": "28.29", 
- 
- 
-115 
+
           "tenders": [ 
             { 
               "tendertype": "Credit" 
@@ -5817,9 +5609,7 @@
               "customerloyamt": "5.99" 
             }, 
             { 
- 
- 
-116 
+
               "purchasedescription": "RICOLA SF LM MN THRT DRP", 
               "productupc": "00003660219210", 
               "retailamt": "2.79", 
@@ -5872,9 +5662,7 @@
             }, 
             { 
               "purchasedescription": "NERDS CLUSTERS DOY", 
- 
- 
-117 
+
               "productupc": "00004142004854", 
               "retailamt": "4.99", 
               "customerloyamt": "3.49" 
@@ -5927,9 +5715,7 @@
               "retailamt": "14.99", 
               "customerloyamt": "14.99" 
             }, 
- 
- 
-118 
+
             { 
               "purchasedescription": "HPPY RNGFR LARGE GD A EGG", 
               "productupc": "00088742200006", 
@@ -5982,9 +5768,7 @@
               "purchasedescription": "PRSL SHRP CHDR CHS GNG", 
               "productupc": "00021336760000", 
               "retailamt": "7.39", 
- 
- 
-119 
+
               "customerloyamt": "7.39" 
             }, 
             { 
@@ -6037,9 +5821,7 @@
           "division": "706", 
           "store": "131  ", 
           "orderno": "233", 
- 
- 
-120 
+
           "total_amount_prior_to_discounts": "45.74", 
           "tenders": [ 
             { 
@@ -6092,9 +5874,7 @@
               "retailamt": "2.49", 
               "customerloyamt": "2.49" 
             }, 
- 
- 
-121 
+
             { 
               "purchasedescription": "HPPY RNGFR LARGE GD A EGG", 
               "productupc": "00088742200006", 
@@ -6147,9 +5927,7 @@
               "purchasedescription": "NATIVE SWEET PEACH DEO", 
               "productupc": "00081215403668", 
               "retailamt": "14.99", 
- 
- 
-122 
+
               "customerloyamt": "14.99" 
             }, 
             { 
@@ -6202,9 +5980,7 @@
             }, 
             { 
               "purchasedescription": "KRO CRSPY CHKN BRST STRPS", 
- 
- 
-123 
+
               "productupc": "00001111085244", 
               "retailamt": "7.99", 
               "customerloyamt": "7.99" 
@@ -6257,9 +6033,7 @@
             { 
               "purchasedescription": "KRO BROCCOLI SWEET BABY", 
               "productupc": "00001111004490", 
- 
- 
-124 
+
               "retailamt": "2.99", 
               "customerloyamt": "2.99" 
             }, 
@@ -6312,9 +6086,7 @@
               "purchasedescription": "KRO HNY BATERD MNI CRN DG", 
               "productupc": "00001111085361", 
               "retailamt": "7.99", 
- 
- 
-125 
+
               "customerloyamt": "7.99" 
             }, 
             { 
@@ -6367,9 +6139,7 @@
             }, 
             { 
               "purchasedescription": "TIDE PODS FREE  GENTLE", 
- 
- 
-126 
+
               "productupc": "00003700000780", 
               "retailamt": "16.99", 
               "customerloyamt": "16.99" 
@@ -6422,9 +6192,7 @@
             { 
               "purchasedescription": "MSSN STRT TCOS FR TS 12CT", 
               "productupc": "00007373107151", 
- 
- 
-127 
+
               "retailamt": "3.19", 
               "customerloyamt": "3.19" 
             }, 
@@ -6477,9 +6245,7 @@
               "customerloyamt": "13.99" 
             } 
           ] 
- 
- 
-128 
+
         }, 
         { 
           "date": "03/20/2024 00:00:00", 
@@ -6532,9 +6298,7 @@
               "tendertype": "Credit" 
             } 
           ], 
- 
- 
-129 
+
           "items": [ 
             { 
               "purchasedescription": "MHTMA JASMNE LNG GRN RICE", 
@@ -6587,9 +6351,7 @@
             { 
               "purchasedescription": "LIMES", 
               "productupc": "00000000004205", 
- 
- 
-130 
+
               "retailamt": "2.76", 
               "customerloyamt": "2.76" 
             }, 
@@ -6642,9 +6404,7 @@
               "purchasedescription": "RICO HNDMD WHT FLOUR TORT", 
               "productupc": "00065366003002", 
               "retailamt": "5.49", 
- 
- 
-131 
+
               "customerloyamt": "5.49" 
             }, 
             { 
@@ -6697,9 +6457,7 @@
             }, 
             { 
               "purchasedescription": "FPPN HOT SMKD SLMN BL PPR", 
- 
- 
-132 
+
               "productupc": "00084013710091", 
               "retailamt": "8.99", 
               "customerloyamt": "8.99" 
@@ -6752,9 +6510,7 @@
             { 
               "purchasedescription": "STO WHMLK GRK PLN YOG CDB", 
               "productupc": "00001111010833", 
- 
- 
-133 
+
               "retailamt": "4.99", 
               "customerloyamt": "4.99" 
             }, 
@@ -6807,9 +6563,7 @@
               "customerloyamt": "1.25" 
             } 
           ] 
- 
- 
-134 
+
         }, 
         { 
           "date": "04/21/2024 00:00:00", 
@@ -6862,9 +6616,7 @@
             }, 
             { 
               "purchasedescription": "PAPA 100% WW FLAT BRD 6CT", 
- 
- 
-135 
+
               "productupc": "00003921711802", 
               "retailamt": "4.49", 
               "customerloyamt": "4.49" 
@@ -6917,9 +6669,7 @@
               "retailamt": "6.99", 
               "customerloyamt": "6.99" 
             }, 
- 
- 
-136 
+
             { 
               "purchasedescription": "FBRZ PLG CLM GPO OIL REFL", 
               "productupc": "00003077211405", 
@@ -6972,9 +6722,7 @@
               "customerloyamt": "4.49" 
             }, 
             { 
- 
- 
-137 
+
               "purchasedescription": "KRO CHS GRLC PULLAPRT BRD", 
               "productupc": "00001111012855", 
               "retailamt": "9.49", 
@@ -7027,9 +6775,7 @@
             }, 
             { 
               "purchasedescription": "SWNS WHT PR CHNK CKN BRST", 
- 
- 
-138 
+
               "productupc": "00005100028473", 
               "retailamt": "7.79", 
               "customerloyamt": "7.79" 
@@ -7082,9 +6828,7 @@
               "retailamt": "12.98", 
               "customerloyamt": "11.98" 
             } 
- 
- 
-139 
+
           ] 
         }, 
         { 
@@ -7137,9 +6881,7 @@
               "purchasedescription": "ALANI ENERGY COSMIC SS", 
               "productupc": "00081003051002", 
               "retailamt": "3.49", 
- 
- 
-140 
+
               "customerloyamt": "2.50" 
             }, 
             { 
@@ -7192,9 +6934,7 @@
               "productupc": "00001090000021", 
               "retailamt": "5.29", 
               "customerloyamt": "4.79" 
- 
- 
-141 
+
             }, 
             { 
               "purchasedescription": "ORAL B GM DTX MW 16Z", 
@@ -7247,9 +6987,7 @@
           ] 
         }, 
         { 
- 
- 
-142 
+
           "date": "05/15/2024 00:00:00", 
           "time": "17:33:00", 
           "division": "706", 
@@ -7302,9 +7040,7 @@
         }, 
         { 
           "date": "05/26/2024 00:00:00", 
- 
- 
-143 
+
           "time": "09:33:00", 
           "division": "706", 
           "store": "279  ", 
@@ -7357,9 +7093,7 @@
               "productupc": "00081003051225", 
               "retailamt": "3.49", 
               "customerloyamt": "2.00" 
- 
- 
-144 
+
             }, 
             { 
               "purchasedescription": "PRSL OVEN ROASTED TURKEY", 
@@ -7412,9 +7146,7 @@
             { 
               "purchasedescription": "GARLIC BULK", 
               "productupc": "00000000004608", 
- 
- 
-145 
+
               "retailamt": "0.67", 
               "customerloyamt": "0.67" 
             }, 
@@ -7467,9 +7199,7 @@
             { 
               "tendertype": "Credit" 
             } 
- 
- 
-146 
+
           ], 
           "items": [ 
             { 
@@ -7522,9 +7252,7 @@
             }, 
             { 
               "purchasedescription": "SUNCHIPS FRENCH ONION", 
- 
- 
-147 
+
               "productupc": "00002840015224", 
               "retailamt": "4.79", 
               "customerloyamt": "4.49" 
@@ -7577,9 +7305,7 @@
             { 
               "purchasedescription": "PRSL RSTRNT STYLE MED", 
               "productupc": "00001111008940", 
- 
- 
-148 
+
               "retailamt": "2.69", 
               "customerloyamt": "2.69" 
             }, 
@@ -7632,9 +7358,7 @@
             { 
               "tendertype": "Credit" 
             } 
- 
- 
-149 
+
           ], 
           "items": [ 
             { 
@@ -7687,9 +7411,7 @@
             }, 
             { 
               "purchasedescription": "DOLE BANANAS", 
- 
- 
-150 
+
               "productupc": "00064312604011", 
               "retailamt": "0.98", 
               "customerloyamt": "0.98" 
@@ -7742,9 +7464,7 @@
             { 
               "purchasedescription": "LABR RSMRY OLV OIL BREAD", 
               "productupc": "00078142100233", 
- 
- 
-151 
+
               "retailamt": "4.49", 
               "customerloyamt": "4.49" 
             }, 
@@ -7797,9 +7517,7 @@
               "customerloyamt": "5.99" 
             }, 
             { 
- 
- 
-152 
+
               "purchasedescription": "DOLE SESAME ASIAN CHP KIT", 
               "productupc": "00007143000035", 
               "retailamt": "4.49", 
@@ -7852,9 +7570,7 @@
           "division": "706", 
           "store": "131  ", 
           "orderno": "55", 
- 
- 
-153 
+
           "total_amount_prior_to_discounts": "64.87", 
           "tenders": [ 
             { 
@@ -7907,9 +7623,7 @@
             { 
               "purchasedescription": "STRBCK ESPRSSO LT COFF 4P", 
               "productupc": "00001200001754", 
- 
- 
-154 
+
               "retailamt": "8.99", 
               "customerloyamt": "8.99" 
             }, 
@@ -7962,9 +7676,7 @@
               "purchasedescription": "PS HT SMKD NRWGN SLMN PEP", 
               "productupc": "00001111098020", 
               "retailamt": "6.99", 
- 
- 
-155 
+
               "customerloyamt": "6.49" 
             }, 
             { 
@@ -8017,9 +7729,7 @@
               "productupc": "00004132124149", 
               "retailamt": "2.29", 
               "customerloyamt": "1.99" 
- 
- 
-156 
+
             }, 
             { 
               "purchasedescription": "NBSC RTZ ORIG FRSH STCK", 
@@ -8072,9 +7782,7 @@
               "retailamt": "10.99", 
               "customerloyamt": "10.99" 
             }, 
- 
- 
-157 
+
             { 
               "purchasedescription": "SNWFX FRSH BERRIES MXD BW", 
               "productupc": "00063912389472", 
@@ -8127,9 +7835,7 @@
               "purchasedescription": "BNTY TRPL ROLL SAS WHITE", 
               "productupc": "00003077206133", 
               "retailamt": "10.49", 
- 
- 
-158 
+
               "customerloyamt": "6.99" 
             }, 
             { 
@@ -8182,9 +7888,7 @@
             }, 
             { 
               "purchasedescription": "MSSN CARB BAL FLR TRT 8CT", 
- 
- 
-159 
+
               "productupc": "00007373107109", 
               "retailamt": "5.99", 
               "customerloyamt": "5.49" 
@@ -8237,9 +7941,7 @@
             { 
               "purchasedescription": "KRO HM EGG CH ENG MFN 8CT", 
               "productupc": "00001111011017", 
- 
- 
-160 
+
               "retailamt": "11.99", 
               "customerloyamt": "11.99" 
             }, 
@@ -8292,9 +7994,7 @@
               "customerloyamt": "0.92" 
             }, 
             { 
- 
- 
-161 
+
               "purchasedescription": "PRSL WLDFLR HNY TRKY GNG", 
               "productupc": "00020593890000", 
               "retailamt": "8.99", 
@@ -8347,9 +8047,7 @@
             }, 
             { 
               "purchasedescription": "FLOWER BATH BOM 7OZ CA", 
- 
- 
-162 
+
               "productupc": "00085690100696", 
               "retailamt": "7.99", 
               "customerloyamt": "7.99" 
@@ -8402,9 +8100,7 @@
               "retailamt": "1.16", 
               "customerloyamt": "1.16" 
             }, 
- 
- 
-163 
+
             { 
               "purchasedescription": "DOLE BANANAS", 
               "productupc": "00064312604011", 
@@ -8457,9 +8153,7 @@
           ], 
           "items": [ 
             { 
- 
- 
-164 
+
               "purchasedescription": "CAOR XTRA VRGN OLIVE OIL", 
               "productupc": "00085068710005", 
               "retailamt": "12.99", 
@@ -8512,9 +8206,7 @@
           "items": [ 
             { 
               "purchasedescription": "SMPLY ORG VANILLA EXTRACT", 
- 
- 
-165 
+
               "productupc": "00008983618531", 
               "retailamt": "10.99", 
               "customerloyamt": "10.99" 
@@ -8567,9 +8259,7 @@
           "date": "07/21/2024 00:00:00", 
           "time": "13:33:00", 
           "division": "706", 
- 
- 
-166 
+
           "store": "030  ", 
           "orderno": "56", 
           "total_amount_prior_to_discounts": "27.97", 
@@ -8622,9 +8312,7 @@
           "time": "13:37:00", 
           "division": "706", 
           "store": "030  ", 
- 
- 
-167 
+
           "orderno": "144", 
           "total_amount_prior_to_discounts": "43.66", 
           "tenders": [ 
@@ -8677,9 +8365,7 @@
           "items": [ 
             { 
               "purchasedescription": "MCAL CRMY PARM CKN POTPIE", 
- 
- 
-168 
+
               "productupc": "00002113150696", 
               "retailamt": "3.79", 
               "customerloyamt": "3.79" 
@@ -8732,9 +8418,7 @@
               "retailamt": "9.95", 
               "customerloyamt": "9.95" 
             }, 
- 
- 
-169 
+
             { 
               "purchasedescription": "MSSN SPINCH HERB WRAP 6CT", 
               "productupc": "00007373100291", 
@@ -8787,9 +8471,7 @@
               "purchasedescription": "CORE PWR CHOCOLATE MLKSHK", 
               "productupc": "00081162002195", 
               "retailamt": "7.98", 
- 
- 
-170 
+
               "customerloyamt": "6.98" 
             }, 
             { 
@@ -8842,9 +8524,7 @@
             }, 
             { 
               "purchasedescription": "COKE ZERO", 
- 
- 
-171 
+
               "productupc": "00004900004086", 
               "retailamt": "2.49", 
               "customerloyamt": "2.00" 
@@ -8897,9 +8577,7 @@
               "retailamt": "12.49", 
               "customerloyamt": "12.49" 
             }, 
- 
- 
-172 
+
             { 
               "purchasedescription": "KRO BABY SPINACH", 
               "productupc": "00001111091049", 
@@ -8952,9 +8630,7 @@
               "purchasedescription": "ALANI CHR SLSH ENRGY 10CT", 
               "productupc": "00081003051509", 
               "retailamt": "11.49", 
- 
- 
-173 
+
               "customerloyamt": "8.99" 
             }, 
             { 
@@ -9007,9 +8683,7 @@
           "division": "706", 
           "store": "030  ", 
           "orderno": "82", 
- 
- 
-174 
+
           "total_amount_prior_to_discounts": "43.96", 
           "tenders": [ 
             { 
@@ -9062,9 +8736,7 @@
           "store": "131  ", 
           "orderno": "87", 
           "total_amount_prior_to_discounts": "140.78", 
- 
- 
-175 
+
           "tenders": [ 
             { 
               "tendertype": "Credit" 
@@ -9117,9 +8789,7 @@
               "purchasedescription": "DANN LF STRWB CHSCK YGRT", 
               "productupc": "00003663202848", 
               "retailamt": "4.49", 
- 
- 
-176 
+
               "customerloyamt": "4.49" 
             }, 
             { 
@@ -9172,9 +8842,7 @@
             }, 
             { 
               "purchasedescription": "PRSL RTD VNL EPRS SHT 4PK", 
- 
- 
-177 
+
               "productupc": "00001111010535", 
               "retailamt": "7.49", 
               "customerloyamt": "7.49" 
@@ -9227,9 +8895,7 @@
             { 
               "purchasedescription": "FLEET SALINE ENEMA TWN PK", 
               "productupc": "00030132020142", 
- 
- 
-178 
+
               "retailamt": "2.99", 
               "customerloyamt": "2.99" 
             }, 
@@ -9282,9 +8948,7 @@
               "customerloyamt": "9.96" 
             }, 
             { 
- 
- 
-179 
+
               "purchasedescription": "STRKS BEEF CRTNS SJ SNACK", 
               "productupc": "00008000052242", 
               "retailamt": "4.38", 
@@ -9337,9 +9001,7 @@
             }, 
             { 
               "purchasedescription": "DANN ACTV CHRY BERRY YGRT", 
- 
- 
-180 
+
               "productupc": "00003663202851", 
               "retailamt": "7.49", 
               "customerloyamt": "7.29" 
@@ -9392,9 +9054,7 @@
             { 
               "purchasedescription": "LETTUCE BOSTON RPC", 
               "productupc": "00000000004632", 
- 
- 
-181 
+
               "retailamt": "1.99", 
               "customerloyamt": "1.99" 
             }, 
@@ -9447,9 +9107,7 @@
               "customerloyamt": "4.19" 
             }, 
             { 
- 
- 
-182 
+
               "purchasedescription": "SUNCHIPS GRDN SALSA SNCKS", 
               "productupc": "00002840014740", 
               "retailamt": "4.79", 
@@ -9502,9 +9160,7 @@
               "productupc": "00001111022524", 
               "retailamt": "2.99", 
               "customerloyamt": "2.99" 
- 
- 
-183 
+
             }, 
             { 
               "purchasedescription": "GRLLO HOT PCKL CHP", 
@@ -9557,9 +9213,7 @@
           ] 
         }, 
         { 
- 
- 
-184 
+
           "date": "09/29/2024 00:00:00", 
           "time": "10:14:00", 
           "division": "706", 
@@ -9612,9 +9266,7 @@
               "purchasedescription": "KRO VIT D WHOLE MILK", 
               "productupc": "00001111050274", 
               "retailamt": "1.29", 
- 
- 
-185 
+
               "customerloyamt": "1.29" 
             }, 
             { 
@@ -9667,9 +9319,7 @@
               "productupc": "00084013431093", 
               "retailamt": "6.99", 
               "customerloyamt": "6.99" 
- 
- 
-186 
+
             }, 
             { 
               "purchasedescription": "PS PRETZEL HAM BUN 4CT", 
@@ -9722,9 +9372,7 @@
             { 
               "purchasedescription": "ORVIL MINI MOV BTR 12CT", 
               "productupc": "00002700062317", 
- 
- 
-187 
+
               "retailamt": "5.79", 
               "customerloyamt": "5.79" 
             }, 
@@ -9777,9 +9425,7 @@
           "orderno": "136", 
           "total_amount_prior_to_discounts": "52.70", 
           "tenders": [ 
- 
- 
-188 
+
             { 
               "tendertype": "Credit" 
             } 
@@ -9832,9 +9478,7 @@
               "productupc": "00022570750000", 
               "retailamt": "10.31", 
               "customerloyamt": "10.31" 
- 
- 
-189 
+
             }, 
             { 
               "purchasedescription": "SPKLN ICE PEACH NECTARINE", 
@@ -9887,9 +9531,7 @@
               "retailamt": "2.99", 
               "customerloyamt": "2.99" 
             }, 
- 
- 
-190 
+
             { 
               "purchasedescription": "KRO SSG EGG CHS CRSNT 8CT", 
               "productupc": "00001111011015", 
@@ -9942,9 +9584,7 @@
               "customerloyamt": "7.79" 
             }, 
             { 
- 
- 
-191 
+
               "purchasedescription": "SPKLN ICE STRWB LEMONADE", 
               "productupc": "00001657195029", 
               "retailamt": "1.25", 
@@ -9997,9 +9637,7 @@
           "total_amount_prior_to_discounts": "73.99", 
           "tenders": [ 
             { 
- 
- 
-192 
+
               "tendertype": "Credit" 
             } 
           ], 
@@ -10052,9 +9690,7 @@
               "retailamt": "7.69", 
               "customerloyamt": "7.31" 
             }, 
- 
- 
-193 
+
             { 
               "purchasedescription": "GATORADE ZERO GLR FR 10CT", 
               "productupc": "00005200004457", 
@@ -10107,9 +9743,7 @@
               "purchasedescription": "SWNS GARLC HERB WHT CHKN", 
               "productupc": "00005100028734", 
               "retailamt": "4.98", 
- 
- 
-194 
+
               "customerloyamt": "4.98" 
             } 
           ] 
@@ -10162,9 +9796,7 @@
             }, 
             { 
               "purchasedescription": "HRSHY ASRTD HALLOWEN 40PC", 
- 
- 
-195 
+
               "productupc": "00003400094538", 
               "retailamt": "13.99", 
               "customerloyamt": "11.99" 
@@ -10217,9 +9849,7 @@
             { 
               "purchasedescription": "HPPY RNGFR LG GD A EGG", 
               "productupc": "00088742200000", 
- 
- 
-196 
+
               "retailamt": "5.29", 
               "customerloyamt": "5.29" 
             }, 
@@ -10272,9 +9902,7 @@
             { 
               "tendertype": "Credit" 
             } 
- 
- 
-197 
+
           ], 
           "items": [ 
             { 
@@ -10327,9 +9955,7 @@
             }, 
             { 
               "purchasedescription": "FIBER 1 90CAL CIN CCK12CT", 
- 
- 
-198 
+
               "productupc": "00001600044511", 
               "retailamt": "7.79", 
               "customerloyamt": "6.99" 
@@ -10382,9 +10008,7 @@
               "retailamt": "4.99", 
               "customerloyamt": "4.99" 
             }, 
- 
- 
-199 
+
             { 
               "purchasedescription": "SWNS GARLC HERB WHT CHKN", 
               "productupc": "00005100028734", 
@@ -10437,9 +10061,7 @@
           "orderno": "257", 
           "total_amount_prior_to_discounts": "40.40", 
           "tenders": [ 
- 
- 
-200 
+
             { 
               "tendertype": "Credit" 
             } 
@@ -10492,9 +10114,7 @@
               "productupc": "00001200001754", 
               "retailamt": "8.99", 
               "customerloyamt": "8.99" 
- 
- 
-201 
+
             } 
           ] 
         }, 
@@ -10547,9 +10167,7 @@
               "retailamt": "3.99", 
               "customerloyamt": "3.50" 
             }, 
- 
- 
-202 
+
             { 
               "purchasedescription": "KRO CLUB SODA 8PK", 
               "productupc": "00001111014125", 
@@ -10602,9 +10220,7 @@
               "purchasedescription": "MONSTER ULTRA ENRGY SNRSE", 
               "productupc": "00007084702090", 
               "retailamt": "3.29", 
- 
- 
-203 
+
               "customerloyamt": "3.29" 
             }, 
             { 
@@ -10657,9 +10273,7 @@
               "productupc": "00001143313661", 
               "retailamt": "3.79", 
               "customerloyamt": "2.49" 
- 
- 
-204 
+
             }, 
             { 
               "purchasedescription": "KRO EGG HAM CHS EN MF 4CT", 
@@ -10712,9 +10326,7 @@
             { 
               "purchasedescription": "NAT BKRY APL OTML 6CT", 
               "productupc": "00004749580020", 
- 
- 
-205 
+
               "retailamt": "4.49", 
               "customerloyamt": "4.49" 
             }, 
@@ -10767,9 +10379,7 @@
               "purchasedescription": "NBSC TRISCUIT THN CR CRKR", 
               "productupc": "00004400005172", 
               "retailamt": "3.99", 
- 
- 
-206 
+
               "customerloyamt": "3.49" 
             }, 
             { 
@@ -10822,9 +10432,7 @@
             }, 
             { 
               "purchasedescription": "COKE ZERO 12PK", 
- 
- 
-207 
+
               "productupc": "00004900004255", 
               "retailamt": "9.99", 
               "customerloyamt": "0.00" 
@@ -10877,9 +10485,7 @@
             { 
               "purchasedescription": "PRPL KIWI STRAWBRRY WATER", 
               "productupc": "00005200070778", 
- 
- 
-208 
+
               "retailamt": "2.29", 
               "customerloyamt": "2.29" 
             }, 
@@ -10932,9 +10538,7 @@
               "customerloyamt": "2.99" 
             }, 
             { 
- 
- 
-209 
+
               "purchasedescription": "TOMS DEO ROSE VANILLA", 
               "productupc": "00082785400591", 
               "retailamt": "8.99", 
@@ -10987,9 +10591,7 @@
             }, 
             { 
               "purchasedescription": "BNTY TRPL ROLL SAS WHITE", 
- 
- 
-210 
+
               "productupc": "00003077206133", 
               "retailamt": "8.99", 
               "customerloyamt": "8.99" 
@@ -11042,9 +10644,7 @@
             { 
               "purchasedescription": "SNWFX PICO DEL GALLO HOT", 
               "productupc": "00063912388011", 
- 
- 
-211 
+
               "retailamt": "4.99", 
               "customerloyamt": "4.99" 
             }, 
@@ -11097,9 +10697,7 @@
               "customerloyamt": "8.17" 
             }, 
             { 
- 
- 
-212 
+
               "purchasedescription": "BF CH SHORT RIB BI", 
               "productupc": "00020241400000", 
               "retailamt": "38.21", 
@@ -11152,9 +10750,7 @@
           "total_amount_prior_to_discounts": "74.82", 
           "tenders": [ 
             { 
- 
- 
-213 
+
               "tendertype": "Credit" 
             } 
           ], 
@@ -11207,9 +10803,7 @@
               "retailamt": "2.21", 
               "customerloyamt": "2.21" 
             }, 
- 
- 
-214 
+
             { 
               "purchasedescription": "WENSLEYDALE ORANGE CHOC", 
               "productupc": "00020627610000", 
@@ -11262,9 +10856,7 @@
               "customerloyamt": "4.75" 
             }, 
             { 
- 
- 
-215 
+
               "purchasedescription": "SH BRW SGR OTMLK CORTADO", 
               "productupc": "00019640969790", 
               "retailamt": "5.25", 
@@ -11317,9 +10909,7 @@
             }, 
             { 
               "purchasedescription": "WEI CHUAN JAPANESE UDON", 
- 
- 
-216 
+
               "productupc": "00007286923096", 
               "retailamt": "2.99", 
               "customerloyamt": "2.99" 
@@ -11372,9 +10962,7 @@
               "retailamt": "7.49", 
               "customerloyamt": "7.49" 
             }, 
- 
- 
-217 
+
             { 
               "purchasedescription": "CFMT SWT CRM COLD FOAM", 
               "productupc": "00005000055483", 
@@ -11427,9 +11015,7 @@
               "purchasedescription": "PK BUTT SR 1PC COV", 
               "productupc": "00020799300000", 
               "retailamt": "24.28", 
- 
- 
-218 
+
               "customerloyamt": "16.16" 
             }, 
             { 
@@ -11482,9 +11068,7 @@
               "productupc": "00005200004457", 
               "retailamt": "5.49", 
               "customerloyamt": "4.99" 
- 
- 
-219 
+
             }, 
             { 
               "purchasedescription": "ORVIL MINI MOV BTR 12CT", 
@@ -11537,9 +11121,7 @@
               "retailamt": "8.99", 
               "customerloyamt": "5.99" 
             }, 
- 
- 
-220 
+
             { 
               "purchasedescription": "BRHD GRUYERE CHEESE P/C", 
               "productupc": "00004242105974", 
@@ -11592,9 +11174,7 @@
               "purchasedescription": "TMPX PEARL MX REG TMPN", 
               "productupc": "00007301071830", 
               "retailamt": "12.79", 
- 
- 
-221 
+
               "customerloyamt": "12.79" 
             }, 
             { 
@@ -11647,9 +11227,7 @@
           "total_amount_prior_to_discounts": "38.97", 
           "tenders": [ 
             { 
- 
- 
-222 
+
               "tendertype": "Credit" 
             } 
           ], 
@@ -11702,9 +11280,7 @@
               "retailamt": "4.49", 
               "customerloyamt": "3.99" 
             } 
- 
- 
-223 
+
           ] 
         }, 
         { 
@@ -11757,9 +11333,7 @@
               "customerloyamt": "3.79" 
             }, 
             { 
- 
- 
-224 
+
               "purchasedescription": "GM CINN TST CRUNCH CEREAL", 
               "productupc": "00001600020281", 
               "retailamt": "5.49", 
@@ -11812,9 +11386,7 @@
           "total_amount_prior_to_discounts": "73.00", 
           "tenders": [ 
             { 
- 
- 
-225 
+
               "tendertype": "Credit" 
             } 
           ], 
@@ -11867,9 +11439,7 @@
               "retailamt": "7.49", 
               "customerloyamt": "7.29" 
             }, 
- 
- 
-226 
+
             { 
               "purchasedescription": "WNDR PISTACHIOS SP", 
               "productupc": "00001411391069", 
@@ -11922,9 +11492,7 @@
         }, 
         { 
           "date": "01/25/2025 00:00:00", 
- 
- 
-227 
+
           "time": "08:58:00", 
           "division": "706", 
           "store": "149  ", 
@@ -11977,9 +11545,7 @@
             }, 
             { 
               "purchasedescription": "TLMK FRMSTYL CT MX FR CHS", 
- 
- 
-228 
+
               "productupc": "00007283001140", 
               "retailamt": "4.49", 
               "customerloyamt": "4.49" 
@@ -12032,9 +11598,7 @@
               "retailamt": "4.79", 
               "customerloyamt": "4.79" 
             }, 
- 
- 
-229 
+
             { 
               "purchasedescription": "STRBCK TRPLESHT NRG MOCHA", 
               "productupc": "00009810010040", 
@@ -12087,9 +11651,7 @@
               "purchasedescription": "DEEP CHKN TIKKA MASALA", 
               "productupc": "00001143313661", 
               "retailamt": "3.79", 
- 
- 
-230 
+
               "customerloyamt": "3.79" 
             }, 
             { 
@@ -12142,9 +11704,7 @@
             }, 
             { 
               "purchasedescription": "CLSN PICKLE BURGER SLICES", 
- 
- 
-231 
+
               "productupc": "00004470009213", 
               "retailamt": "5.99", 
               "customerloyamt": "5.99" 
@@ -12197,9 +11757,7 @@
             { 
               "purchasedescription": "PRSL RSMARY ENTRTNR CRCKR", 
               "productupc": "00001111088571", 
- 
- 
-232 
+
               "retailamt": "3.49", 
               "customerloyamt": "3.49" 
             }, 
@@ -12252,9 +11810,7 @@
               "customerloyamt": "4.00" 
             }, 
             { 
- 
- 
-233 
+
               "purchasedescription": "KRO OMEPRAZOLE BERRY", 
               "productupc": "00004126038016", 
               "retailamt": "14.99", 
@@ -12307,9 +11863,7 @@
             }, 
             { 
               "purchasedescription": "STRBCK TRPLESHT NRG MOCHA", 
- 
- 
-234 
+
               "productupc": "00009810010040", 
               "retailamt": "6.98", 
               "customerloyamt": "3.49" 
@@ -12362,9 +11916,7 @@
           "date": "02/15/2025 00:00:00", 
           "time": "15:40:00", 
           "division": "706", 
- 
- 
-235 
+
           "store": "131  ", 
           "orderno": "146", 
           "total_amount_prior_to_discounts": "72.86", 
@@ -12417,9 +11969,7 @@
               "customerloyamt": "4.99" 
             }, 
             { 
- 
- 
-236 
+
               "purchasedescription": "CHILE RELLENO STFD CHKN", 
               "productupc": "00028096790000", 
               "retailamt": "10.63", 
@@ -12472,9 +12022,7 @@
             } 
           ] 
         }, 
- 
- 
-237 
+
         { 
           "date": "03/01/2025 00:00:00", 
           "time": "09:36:00", 
@@ -12527,9 +12075,7 @@
             { 
               "purchasedescription": "WLDC RANCH DRESSING", 
               "productupc": "00063400300052", 
- 
- 
-238 
+
               "retailamt": "5.99", 
               "customerloyamt": "5.99" 
             }, 
@@ -12582,9 +12128,7 @@
               "purchasedescription": "STRBCK COLD BRW VAN CRM", 
               "productupc": "00009810010030", 
               "retailamt": "3.99", 
- 
- 
-239 
+
               "customerloyamt": "3.99" 
             }, 
             { 
@@ -12637,9 +12181,7 @@
               "productupc": "00004400007963", 
               "retailamt": "4.99", 
               "customerloyamt": "4.29" 
- 
- 
-240 
+
             }, 
             { 
               "purchasedescription": "PRSL KONA GRD COFFEE", 
@@ -12692,9 +12234,7 @@
               "retailamt": "3.19", 
               "customerloyamt": "3.00" 
             }, 
- 
- 
-241 
+
             { 
               "purchasedescription": "GRGR BASIL LGHT DRD", 
               "productupc": "00087520800155", 
@@ -12747,9 +12287,7 @@
               "purchasedescription": "SNWFX SALSA MEDIUM", 
               "productupc": "00063912388018", 
               "retailamt": "4.99", 
- 
- 
-242 
+
               "customerloyamt": "4.99" 
             }, 
             { 
@@ -12802,9 +12340,7 @@
             }, 
             { 
               "purchasedescription": "PK LOIN HALF VAC PK BL", 
- 
- 
-243 
+
               "productupc": "00020322450000", 
               "retailamt": "12.65", 
               "customerloyamt": "12.65" 
@@ -12857,9 +12393,7 @@
               "retailamt": "2.99", 
               "customerloyamt": "2.49" 
             }, 
- 
- 
-244 
+
             { 
               "purchasedescription": "PRPL ZERO SGR IS ORB 10CT", 
               "productupc": "00005200005022", 
@@ -12912,9 +12446,7 @@
               "purchasedescription": "DRTLS EP SLT SKG SL MN RL", 
               "productupc": "00081002120469", 
               "retailamt": "6.99", 
- 
- 
-245 
+
               "customerloyamt": "5.99" 
             } 
           ] 
@@ -12967,9 +12499,7 @@
               "productupc": "00005150002945", 
               "retailamt": "13.99", 
               "customerloyamt": "13.49" 
- 
- 
-246 
+
             }, 
             { 
               "purchasedescription": "DEEP CHICKEN CURRY", 
@@ -13022,9 +12552,7 @@
               "retailamt": "4.69", 
               "customerloyamt": "4.69" 
             }, 
- 
- 
-247 
+
             { 
               "purchasedescription": "GRND BEEF/PORK BLND 80/20", 
               "productupc": "00002718256550", 
@@ -13077,9 +12605,7 @@
           "orderno": "104", 
           "total_amount_prior_to_discounts": "64.07", 
           "tenders": [ 
- 
- 
-248 
+
             { 
               "tendertype": "Credit" 
             } 
@@ -13132,9 +12658,7 @@
               "productupc": "00030766074650", 
               "retailamt": "6.49", 
               "customerloyamt": "5.99" 
- 
- 
-249 
+
             }, 
             { 
               "purchasedescription": "PRPL ZERO SGR IS ORB 10CT", 
@@ -13187,9 +12711,7 @@
               "retailamt": "6.00", 
               "customerloyamt": "6.00" 
             }, 
- 
- 
-250 
+
             { 
               "purchasedescription": "COKE ZERO", 
               "productupc": "00004900004086", 
@@ -13242,9 +12764,7 @@
               "customerloyamt": "3.49" 
             }, 
             { 
- 
- 
-251 
+
               "purchasedescription": "FANCY ECLAIR", 
               "productupc": "00001111061333", 
               "retailamt": "3.99", 
@@ -13297,9 +12817,7 @@
               "productupc": "00005200001358", 
               "retailamt": "4.98", 
               "customerloyamt": "3.00" 
- 
- 
-252 
+
             }, 
             { 
               "purchasedescription": "PS BF JMBO HOT DOG", 
@@ -13352,9 +12870,7 @@
               "retailamt": "2.89", 
               "customerloyamt": "2.89" 
             }, 
- 
- 
-253 
+
             { 
               "purchasedescription": "DOLE BANANAS", 
               "productupc": "00064312604011", 
@@ -13407,9 +12923,7 @@
               "purchasedescription": "BFR ASRTD MINI DNTS 12 CT", 
               "productupc": "00001111063912", 
               "retailamt": "5.00", 
- 
- 
-254 
+
               "customerloyamt": "5.00" 
             } 
           ] 
@@ -13462,9 +12976,7 @@
               "productupc": "00005200005022", 
               "retailamt": "4.99", 
               "customerloyamt": "4.99" 
- 
- 
-255 
+
             }, 
             { 
               "purchasedescription": "PRSL SPCY POBLANO MCCHS", 
@@ -13517,9 +13029,7 @@
           "store": "131  ", 
           "orderno": "65", 
           "total_amount_prior_to_discounts": "54.25", 
- 
- 
-256 
+
           "tenders": [ 
             { 
               "tendertype": "Credit" 
@@ -13572,9 +13082,7 @@
               "purchasedescription": "DOLE BANANAS", 
               "productupc": "00000000004011", 
               "retailamt": "0.64", 
- 
- 
-257 
+
               "customerloyamt": "0.64" 
             } 
           ] 
@@ -13627,9 +13135,7 @@
               "productupc": "00000000004784", 
               "retailamt": "1.06", 
               "customerloyamt": "1.06" 
- 
- 
-258 
+
             }, 
             { 
               "purchasedescription": "LEMONS RPC", 
@@ -13682,9 +13188,7 @@
             { 
               "purchasedescription": "QKER CAPN CRUNCH BERRIES", 
               "productupc": "00003000057322", 
- 
- 
-259 
+
               "retailamt": "4.29", 
               "customerloyamt": "2.99" 
             }, 
@@ -13737,9 +13241,7 @@
           "time": "16:40:00", 
           "division": "706", 
           "store": "279  ", 
- 
- 
-260 
+
           "orderno": "225", 
           "total_amount_prior_to_discounts": "53.59", 
           "tenders": [ 
@@ -13792,9 +13294,7 @@
             }, 
             { 
               "purchasedescription": "HTGF CHK BRST BLSL NO PMP", 
- 
- 
-261 
+
               "productupc": "00028334900000", 
               "retailamt": "15.07", 
               "customerloyamt": "15.07" 
@@ -13847,9 +13347,7 @@
             { 
               "purchasedescription": "PRPL ZERO SGR IS ORB 10CT", 
               "productupc": "00005200005022", 
- 
- 
-262 
+
               "retailamt": "4.99", 
               "customerloyamt": "4.99" 
             } 
@@ -13902,9 +13400,7 @@
               "purchasedescription": "MONSTER ULTRA FNTSY RR ED", 
               "productupc": "00007084789618", 
               "retailamt": "3.29", 
- 
- 
-263 
+
               "customerloyamt": "0.00" 
             }, 
             { 
@@ -13957,9 +13453,7 @@
             }, 
             { 
               "purchasedescription": "DIAL COMPLT PEAR FM HD SP", 
- 
- 
-264 
+
               "productupc": "00001700002934", 
               "retailamt": "6.78", 
               "customerloyamt": "5.98" 
@@ -14012,9 +13506,7 @@
               "retailamt": "10.99", 
               "customerloyamt": "10.99" 
             } 
- 
- 
-265 
+
           ] 
         }, 
         { 
@@ -14067,9 +13559,7 @@
               "customerloyamt": "8.49" 
             }, 
             { 
- 
- 
-266 
+
               "purchasedescription": "DELI TKY MNSTR 1/2 SNDWCH", 
               "productupc": "00001111007113", 
               "retailamt": "5.99", 
@@ -14122,9 +13612,7 @@
           "division": "706", 
           "store": "131  ", 
           "orderno": "87", 
- 
- 
-267 
+
           "total_amount_prior_to_discounts": "40.84", 
           "tenders": [ 
             { 
@@ -14177,9 +13665,7 @@
               "retailamt": "3.79", 
               "customerloyamt": "3.79" 
             }, 
- 
- 
-268 
+
             { 
               "purchasedescription": "PRSL HWAIIAN HTDG BNS 8CT", 
               "productupc": "00001111011516", 

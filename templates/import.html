@@ -6,13 +6,13 @@
     <title>Import Files - Spend Analyzer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-<body>
+<body class="{{ 'theme-' + session.get('theme', 'default') if session.get('theme') and session.get('theme') != 'default' else '' }}">
     <div class="container">
         <div class="content">
             <div id="alert" class="alert hidden"></div>
             
             <!-- Prominent Back Button -->
-            <a href="/?user_id={{ user_id }}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+            <a href="/" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
                 ← Back to Dashboard
             </a>
             
@@ -83,18 +83,12 @@
     }
 
     function importSingleFile(filename) {
-        const userId = '{{ user_id }}';
-        if (!userId) {
-            showAlert('Please load a user first', 'error');
-            return;
-        }
-        
         showAlert('Importing ' + filename + '...', 'success');
         
         fetch('/api/import_file', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, filename: filename })
+            body: JSON.stringify({ filename: filename })
         })
         .then(r => r.json())
         .then(result => {

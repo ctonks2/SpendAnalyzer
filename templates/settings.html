@@ -6,35 +6,93 @@
     <title>Settings - Spend Analyzer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-<body>
+<body class="{{ 'theme-' + theme if theme and theme != 'default' else '' }}">
     <div class="container">
         <div class="content">
             <div id="alert" class="alert hidden"></div>
             
             <!-- Prominent Back Button -->
-            <a href="/?user_id={{ user_id }}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+            <a href="/" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
                 ← Back to Dashboard
             </a>
             
-            <h2 class="section-title">⚙️ Settings & Data Management</h2>
+            <h2 class="section-title">⚙️ Settings & Preferences</h2>
 
 {% if not user_id %}
 <div class="no-data">
-    <p>Please <a href="/">load a user</a> first to manage settings.</p>
+    <p>Please <a href="/login">log in</a> first to manage settings.</p>
 </div>
 {% else %}
-<div style="margin-bottom: 30px;">
-    <h3 style="margin-bottom: 15px; color: #dc3545;">Danger Zone</h3>
-    <p style="color: #666; margin-bottom: 15px;">
-        Permanently delete all your data. This cannot be undone.
+
+<!-- Theme Selection -->
+<div class="card" style="margin-bottom: 30px; padding: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary);">🎨 Theme</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+        Choose a color theme for your dashboard.
+    </p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+        <div class="theme-option {{ 'active' if not theme or theme == 'default' else '' }}" data-theme="default" onclick="selectTheme('default')">
+            <div class="theme-preview" style="background: linear-gradient(135deg, #0f0f13 0%, #1c1c26 50%, #00d4aa 100%);"></div>
+            <span>Default (Teal)</span>
+        </div>
+        <div class="theme-option {{ 'active' if theme == 'cherry-blossoms' else '' }}" data-theme="cherry-blossoms" onclick="selectTheme('cherry-blossoms')">
+            <div class="theme-preview" style="background: linear-gradient(135deg, #1a0f14 0%, #2d1a20 50%, #ff7eb3 100%);"></div>
+            <span>Cherry Blossoms</span>
+        </div>
+        <div class="theme-option {{ 'active' if theme == 'beach-day' else '' }}" data-theme="beach-day" onclick="selectTheme('beach-day')">
+            <div class="theme-preview" style="background: linear-gradient(135deg, #0a1520 0%, #132636 50%, #00bfff 100%);"></div>
+            <span>Beach Day</span>
+        </div>
+        <div class="theme-option {{ 'active' if theme == 'falling-leaves' else '' }}" data-theme="falling-leaves" onclick="selectTheme('falling-leaves')">
+            <div class="theme-preview" style="background: linear-gradient(135deg, #141008 0%, #261c10 50%, #ff9933 100%);"></div>
+            <span>Falling Leaves</span>
+        </div>
+        <div class="theme-option {{ 'active' if theme == 'winter-forest' else '' }}" data-theme="winter-forest" onclick="selectTheme('winter-forest')">
+            <div class="theme-preview" style="background: linear-gradient(135deg, #0a0f14 0%, #131d26 50%, #66cccc 100%);"></div>
+            <span>Winter Forest</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    .theme-option {
+        cursor: pointer;
+        padding: 12px;
+        border-radius: var(--radius-md);
+        border: 2px solid var(--border);
+        transition: var(--transition);
+        text-align: center;
+    }
+    .theme-option:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+    }
+    .theme-option.active {
+        border-color: var(--accent);
+        background: var(--accent-subtle);
+    }
+    .theme-preview {
+        height: 60px;
+        border-radius: var(--radius-sm);
+        margin-bottom: 10px;
+    }
+    .theme-option span {
+        color: var(--text-primary);
+        font-size: 0.9rem;
+    }
+</style>
+
+<!-- Danger Zone -->
+<div class="card" style="padding: 24px; border: 1px solid var(--danger);">
+    <h3 style="margin-bottom: 15px; color: var(--danger);">⚠️ Danger Zone</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 15px;">
+        Permanently delete all your transaction data. This cannot be undone.
     </p>
     <button class="btn btn-danger" onclick="deleteAllData()">Delete All My Data</button>
 </div>
 {% endif %}
 
 <script>
-    const userId = '{{ user_id }}';
-
     function showAlert(message, type) {
         const alert = document.getElementById('alert');
         alert.textContent = message;
@@ -43,13 +101,38 @@
         setTimeout(() => alert.classList.add('hidden'), 5000);
     }
 
+    function selectTheme(theme) {
+        // Update UI immediately
+        document.querySelectorAll('.theme-option').forEach(opt => {
+            opt.classList.toggle('active', opt.dataset.theme === theme);
+        });
+        
+        // Apply theme to body
+        document.body.className = theme === 'default' ? '' : 'theme-' + theme;
+        
+        // Save to server
+        fetch('/api/update_theme', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ theme: theme })
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('Theme updated!', 'success');
+            } else {
+                showAlert('Failed to save theme', 'error');
+            }
+        })
+        .catch(() => showAlert('Error saving theme', 'error'));
+    }
+
     function deleteAllData() {
         if (!confirm('Are you sure you want to delete ALL your data? This cannot be undone.')) return;
         
         fetch('/api/delete_data', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
+            headers: { 'Content-Type': 'application/json' }
         })
         .then(r => r.json())
         .then(result => {

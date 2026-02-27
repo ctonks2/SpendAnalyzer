@@ -7,6 +7,15 @@ _engine = None
 _Session = None
 
 
+def reset_db():
+    """Reset the database engine and session maker. Call this before reinitializing."""
+    global _engine, _Session
+    if _engine:
+        _engine.dispose()
+    _engine = None
+    _Session = None
+
+
 def get_engine(db_url):
     global _engine
     if _engine is None:

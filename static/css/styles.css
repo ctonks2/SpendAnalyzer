@@ -37,6 +37,96 @@
     --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* === Theme: Cherry Blossoms === */
+body.theme-cherry-blossoms {
+    --bg-primary: #1a0f14;
+    --bg-secondary: #241418;
+    --bg-card: #2d1a20;
+    --bg-elevated: #3a2028;
+    --bg-glass: rgba(45, 26, 32, 0.8);
+    
+    --accent: #ff7eb3;
+    --accent-hover: #ff99c4;
+    --accent-subtle: rgba(255, 126, 179, 0.1);
+    --accent-glow: rgba(255, 126, 179, 0.3);
+    --success: #ff7eb3;
+    --shadow-glow: 0 0 30px rgba(255, 126, 179, 0.15);
+}
+
+body.theme-cherry-blossoms::before {
+    background: 
+        radial-gradient(ellipse at 20% 0%, rgba(255, 126, 179, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(255, 182, 193, 0.08) 0%, transparent 50%);
+}
+
+/* === Theme: Beach Day === */
+body.theme-beach-day {
+    --bg-primary: #0a1520;
+    --bg-secondary: #0e1d2a;
+    --bg-card: #132636;
+    --bg-elevated: #1a3042;
+    --bg-glass: rgba(19, 38, 54, 0.8);
+    
+    --accent: #00bfff;
+    --accent-hover: #33ccff;
+    --accent-subtle: rgba(0, 191, 255, 0.1);
+    --accent-glow: rgba(0, 191, 255, 0.3);
+    --success: #00bfff;
+    --warning: #ffd966;
+    --shadow-glow: 0 0 30px rgba(0, 191, 255, 0.15);
+}
+
+body.theme-beach-day::before {
+    background: 
+        radial-gradient(ellipse at 50% 0%, rgba(0, 191, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(255, 217, 102, 0.08) 0%, transparent 50%);
+}
+
+/* === Theme: Falling Leaves === */
+body.theme-falling-leaves {
+    --bg-primary: #141008;
+    --bg-secondary: #1d160c;
+    --bg-card: #261c10;
+    --bg-elevated: #332414;
+    --bg-glass: rgba(38, 28, 16, 0.8);
+    
+    --accent: #ff9933;
+    --accent-hover: #ffad4d;
+    --accent-subtle: rgba(255, 153, 51, 0.1);
+    --accent-glow: rgba(255, 153, 51, 0.3);
+    --success: #ff9933;
+    --danger: #cc4422;
+    --shadow-glow: 0 0 30px rgba(255, 153, 51, 0.15);
+}
+
+body.theme-falling-leaves::before {
+    background: 
+        radial-gradient(ellipse at 30% 0%, rgba(255, 153, 51, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 100%, rgba(204, 68, 34, 0.08) 0%, transparent 50%);
+}
+
+/* === Theme: Winter Forest === */
+body.theme-winter-forest {
+    --bg-primary: #0a0f14;
+    --bg-secondary: #0e151c;
+    --bg-card: #131d26;
+    --bg-elevated: #1a2633;
+    --bg-glass: rgba(19, 29, 38, 0.8);
+    
+    --accent: #66cccc;
+    --accent-hover: #88dddd;
+    --accent-subtle: rgba(102, 204, 204, 0.1);
+    --accent-glow: rgba(102, 204, 204, 0.3);
+    --success: #66cccc;
+    --shadow-glow: 0 0 30px rgba(102, 204, 204, 0.15);
+}
+
+body.theme-winter-forest::before {
+    background: 
+        radial-gradient(ellipse at 20% 0%, rgba(102, 204, 204, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(200, 220, 255, 0.06) 0%, transparent 50%);
+}
+
 /* === Base Styles === */
 * {
     margin: 0;

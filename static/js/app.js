@@ -31,14 +31,3 @@ function showAlert(message, type) {
     alert.classList.remove('hidden');
     setTimeout(() => alert.classList.add('hidden'), 5000);
 }
-
-// === User Management ===
-
-function loadUser() {
-    const userId = document.getElementById('userId').value.trim();
-    if (!userId) {
-        showAlert('Please enter a User ID', 'error');
-        return;
-    }
-    window.location.href = '/?user_id=' + encodeURIComponent(userId);
-}

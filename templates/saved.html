@@ -6,13 +6,13 @@
     <title>Saved Insights - Spend Analyzer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-<body>
+<body class="{{ 'theme-' + session.get('theme', 'default') if session.get('theme') and session.get('theme') != 'default' else '' }}">
     <div class="container">
         <div class="content">
             <div id="alert" class="alert hidden"></div>
             
             <!-- Prominent Back Button -->
-            <a href="/?user_id={{ user_id }}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+            <a href="/" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
                 ← Back to Dashboard
             </a>
             
@@ -54,8 +54,6 @@
 {% endif %}
 
 <script>
-    const userId = '{{ user_id }}';
-
     function showAlert(message, type) {
         const alert = document.getElementById('alert');
         alert.textContent = message;
@@ -109,7 +107,7 @@
         fetch('/api/delete_recommendation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, index: index })
+            body: JSON.stringify({ index: index })
         })
         .then(r => r.json())
         .then(result => {

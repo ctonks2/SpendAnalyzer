@@ -6,13 +6,13 @@
     <title>AI Insights - Spend Analyzer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-<body>
+<body class="{{ 'theme-' + session.get('theme', 'default') if session.get('theme') and session.get('theme') != 'default' else '' }}">
     <div class="container">
         <div class="content">
             <div id="alert" class="alert hidden"></div>
             
             <!-- Prominent Back Button -->
-            <a href="/?user_id={{ user_id }}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+            <a href="/" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
                 ← Back to Dashboard
             </a>
             
@@ -64,19 +64,45 @@
         💡 The AI automatically filters context based on your question (years, months, store names). 
         Test different questions above to see what data would be sent.
     </p>
-    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; max-height: 450px; overflow-y: auto;">
+    
+    <!-- Last Sent Context Section -->
+    <div id="lastSentContextSection" style="margin-bottom: 20px; display: none;">
+        <h4 style="color: var(--accent); margin-bottom: 8px;">📤 Last Sent to LLM</h4>
+        <div style="background: var(--bg-elevated); border: 2px solid var(--accent); border-radius: 8px; padding: 15px; max-height: 300px; overflow-y: auto;">
+            <pre id="lastSentContext" style="margin: 0; white-space: pre-wrap; word-wrap: break-word; font-family: 'Consolas', monospace; font-size: 12px; color: var(--text-primary);"></pre>
+        </div>
+        <div style="margin-top: 8px; color: var(--text-muted); font-size: 12px;">
+            <span id="lastSentStats"></span>
+        </div>
+    </div>
+    
+    <!-- Conversation History Sent Section -->
+    <div id="historySection" style="margin-bottom: 20px; display: none;">
+        <h4 style="color: var(--text-secondary); margin-bottom: 8px;">💬 Conversation History Sent</h4>
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; max-height: 250px; overflow-y: auto;">
+            <pre id="historySent" style="margin: 0; white-space: pre-wrap; word-wrap: break-word; font-family: 'Consolas', monospace; font-size: 12px; color: var(--text-primary);">No conversation history yet.</pre>
+        </div>
+        <div style="margin-top: 8px; color: var(--text-muted); font-size: 12px;">
+            <span id="historyStats"></span>
+        </div>
+    </div>
+    
+    <!-- Test Filter Preview Section -->
+    <h4 style="color: var(--text-secondary); margin-bottom: 8px;">🔍 Filter Preview</h4>
+    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; max-height: 350px; overflow-y: auto;">
         <pre id="llmContextDisplay" style="margin: 0; white-space: pre-wrap; word-wrap: break-word; font-family: 'Consolas', monospace; font-size: 12px; color: var(--text-primary);">Enter a test question and click "Test Filter" to see what context would be sent to the LLM.</pre>
     </div>
 </div>
 {% endif %}
 
 <script>
-    const userId = '{{ user_id }}';
-
     // Store last chat exchange for saving
     let lastQuestion = '';
     let lastResponse = '';
     let lastInsightSaved = false;
+    let lastSentContext = '';  // Store what was sent to LLM
+    let lastSentStats = '';
+    let conversationHistory = [];  // Track conversation for context continuity
 
     function showAlert(message, type) {
         const alert = document.getElementById('alert');
@@ -119,24 +145,52 @@
         document.getElementById('detailedViewContent').style.display = view === 'detailed' ? 'block' : 'none';
         
         if (view === 'detailed') {
+            // Show last sent context if available
+            updateLastSentContextDisplay();
             refreshLLMContext();
         }
     }
 
-    function refreshLLMContext() {
-        if (!userId) {
-            document.getElementById('llmContextDisplay').textContent = 'Please load a user first to see context data.';
-            document.getElementById('contextStats').textContent = '';
-            document.getElementById('filterInfo').textContent = '';
-            return;
+    function updateLastSentContextDisplay() {
+        const section = document.getElementById('lastSentContextSection');
+        const contextPre = document.getElementById('lastSentContext');
+        const statSpan = document.getElementById('lastSentStats');
+        
+        if (lastSentContext) {
+            section.style.display = 'block';
+            contextPre.textContent = lastSentContext;
+            statSpan.textContent = lastSentStats;
+        } else {
+            section.style.display = 'none';
         }
         
+        // Update history section
+        const historySection = document.getElementById('historySection');
+        const historyPre = document.getElementById('historySent');
+        const historyStatSpan = document.getElementById('historyStats');
+        
+        if (conversationHistory.length > 0) {
+            historySection.style.display = 'block';
+            // Format history for display
+            const historyText = conversationHistory.map((h, i) => 
+                `--- Exchange ${i + 1} ---\nUser: ${h.question}\nAssistant: ${h.response.substring(0, 200)}${h.response.length > 200 ? '...' : ''}`
+            ).join('\n\n');
+            historyPre.textContent = historyText;
+            historyStatSpan.textContent = `${conversationHistory.length} exchange(s) in memory (last 3 sent with each request)`;
+        } else {
+            historySection.style.display = 'block';
+            historyPre.textContent = 'No conversation history yet. Chat history will appear here after your first exchange.';
+            historyStatSpan.textContent = '';
+        }
+    }
+
+    function refreshLLMContext() {
         const testQuestion = document.getElementById('testQuestion')?.value.trim() || '';
         document.getElementById('llmContextDisplay').textContent = 'Loading...';
         
-        let url = `/api/llm_context?user_id=${encodeURIComponent(userId)}`;
+        let url = '/api/llm_context';
         if (testQuestion) {
-            url += `&question=${encodeURIComponent(testQuestion)}`;
+            url += `?question=${encodeURIComponent(testQuestion)}`;
         }
         
         fetch(url)
@@ -147,20 +201,20 @@
                     return;
                 }
                 
-                const context = data.context || [];
-                const totalCount = data.total_transactions || context.length;
-                const filteredCount = data.filtered_count || context.length;
+                // Show the table format that's actually sent to the LLM
+                const tableFormat = data.context_table || '';
+                const totalCount = data.total_transactions || 0;
+                const filteredCount = data.filtered_count || 0;
                 const filters = data.filters_applied || [];
                 
-                const jsonStr = JSON.stringify(context);
-                const charCount = jsonStr.length;
+                const charCount = tableFormat.length;
                 const estimatedTokens = Math.ceil(charCount / 4);
                 
                 document.getElementById('contextStats').textContent = 
                     `${filteredCount} of ${totalCount} transactions | ${charCount.toLocaleString()} chars | ~${estimatedTokens.toLocaleString()} tokens`;
                 document.getElementById('filterInfo').textContent = 
                     filters.length ? `Filters: ${filters.join(', ')}` : '';
-                document.getElementById('llmContextDisplay').textContent = JSON.stringify(context, null, 2);
+                document.getElementById('llmContextDisplay').textContent = tableFormat || 'No transaction data available.';
             })
             .catch(err => {
                 document.getElementById('llmContextDisplay').textContent = 'Error loading context: ' + err.message;
@@ -171,11 +225,6 @@
         const input = document.getElementById('chatInput');
         const message = input.value.trim();
         if (!message) return;
-        
-        if (!userId) {
-            showAlert('Please load a user first', 'error');
-            return;
-        }
         
         const messages = document.getElementById('chatMessages');
         messages.innerHTML += `<div class="message user">${message}</div>`;
@@ -189,7 +238,10 @@
         fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, message: message })
+            body: JSON.stringify({ 
+                message: message,
+                history: conversationHistory  // Include conversation history
+            })
         })
         .then(r => r.json())
         .then(result => {
@@ -200,6 +252,26 @@
             lastQuestion = message;
             lastResponse = response;
             lastInsightSaved = false;
+            
+            // Add to conversation history for context continuity (keep last 5 exchanges)
+            if (response && !result.error) {
+                conversationHistory.push({ question: message, response: response });
+                if (conversationHistory.length > 5) {
+                    conversationHistory.shift();  // Remove oldest exchange
+                }
+            }
+            
+            // Store context data for detailed view
+            if (result.context_data) {
+                lastSentContext = result.context_data;
+                const filteredCount = result.filtered_count || 0;
+                const totalCount = result.total_count || 0;
+                const filters = result.filters_applied || [];
+                const charCount = result.context_size || 0;
+                const estimatedTokens = Math.ceil(charCount / 4);
+                lastSentStats = `Question: "${message}" | ${filteredCount} of ${totalCount} transactions | ${charCount.toLocaleString()} chars | ~${estimatedTokens.toLocaleString()} tokens` +
+                    (filters.length ? ` | Filters: ${filters.join(', ')}` : '');
+            }
             
             // Convert markdown to HTML for display
             const formattedResponse = markdownToHtml(response);
@@ -257,7 +329,7 @@
         fetch('/api/save_recommendation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, question: lastQuestion, response: lastResponse, category: category })
+            body: JSON.stringify({ question: lastQuestion, response: lastResponse, category: category })
         })
         .then(r => r.json())
         .then(result => {

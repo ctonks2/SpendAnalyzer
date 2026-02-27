@@ -6,26 +6,28 @@
 </div>
 
 <div class="user-bar">
-    <div>
-        <label style="margin-right: 10px; font-weight: 500;">User ID:</label>
-        <input type="text" id="userId" placeholder="Enter your ID" value="{{ user_id }}">
-        <button onclick="loadUser()">Load</button>
-    </div>
     <div class="user-info" id="userStatus">
         {% if user_id %}
             Welcome, <strong>{{ user_id }}</strong>! ({{ transaction_count }} transactions)
         {% else %}
-            Enter your User ID to get started
+            Please log in to get started
+        {% endif %}
+    </div>
+    <div>
+        {% if user_id %}
+            <a href="/logout" class="btn btn-danger" style="text-decoration: none; padding: 8px 16px; font-size: 0.85rem;">Logout</a>
+        {% else %}
+            <a href="/login" class="btn" style="text-decoration: none; padding: 8px 16px; font-size: 0.85rem;">Login</a>
         {% endif %}
     </div>
 </div>
 
 <div class="tabs">
-    <a href="/?user_id={{ user_id }}" class="tab active" style="text-decoration: none;">📊 Dashboard</a>
-    <a href="/add?user_id={{ user_id }}" class="tab" style="text-decoration: none;">➕ Add Receipt</a>
-    <a href="/import?user_id={{ user_id }}" class="tab" style="text-decoration: none;">📥 Import</a>
-    <a href="/chat?user_id={{ user_id }}" class="tab" style="text-decoration: none;">🤖 AI Insights</a>
-    <a href="/saved?user_id={{ user_id }}" class="tab" style="text-decoration: none;">📁 Saved Insights</a>
-    <a href="/data?user_id={{ user_id }}" class="tab" style="text-decoration: none;">📋 View Data</a>
-    <a href="/settings?user_id={{ user_id }}" class="tab" style="text-decoration: none;">⚙️ Settings</a>
+    <a href="/" class="tab active" style="text-decoration: none;">📊 Dashboard</a>
+    <a href="/add" class="tab" style="text-decoration: none;">➕ Add Receipt</a>
+    <a href="/import" class="tab" style="text-decoration: none;">📥 Import</a>
+    <a href="/chat" class="tab" style="text-decoration: none;">🤖 AI Insights</a>
+    <a href="/saved" class="tab" style="text-decoration: none;">📁 Saved Insights</a>
+    <a href="/data" class="tab" style="text-decoration: none;">📋 View Data</a>
+    <a href="/settings" class="tab" style="text-decoration: none;">⚙️ Settings</a>
 </div>
