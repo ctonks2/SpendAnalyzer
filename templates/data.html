@@ -179,6 +179,7 @@
             const key = normDate + '|' + (tx.store || 'unknown');
             if (!receipts[key]) {
                 receipts[key] = {
+                    receipt_id: tx.receipt_id,
                     date: normDate,
                     store: tx.store,
                     source: tx.source,
@@ -233,7 +234,7 @@
         if (currentView === 'items') {
             thead.innerHTML = '<tr><th>Date</th><th>Store</th><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>';
         } else if (currentView === 'receipts') {
-            thead.innerHTML = '<tr><th>Date</th><th>Store</th><th>Source</th><th>Items</th><th>Total</th></tr>';
+            thead.innerHTML = '<tr><th>Date</th><th>Store</th><th>Source</th><th>Items</th><th>Total</th><th>Actions</th></tr>';
         } else if (currentView === 'stores') {
             thead.innerHTML = '<tr><th>Store</th><th>Source</th><th>Visits</th><th>Items</th><th>Total Spent</th></tr>';
         }
@@ -258,27 +259,38 @@
                 </tr>`;
             } else if (currentView === 'receipts') {
                 const receiptId = `receipt-${displayDate}-${(item.store || 'unknown').replace(/\s+/g, '-')}`;
+                const receiptDbId = item.receipt_id;
                 html += `<tr class="receipt-row" onclick="toggleReceiptDetails('${receiptId}')">
                     <td>${displayDate}</td>
                     <td>${item.store || '-'}</td>
                     <td>${item.source || '-'}</td>
                     <td>${item.items}</td>
                     <td>$${item.total.toFixed(2)}</td>
+                    <td onclick="event.stopPropagation()">
+                        <div class="action-buttons">
+                            <a href="/receipt/${receiptDbId}/edit" class="btn btn-sm btn-edit" title="Edit receipt">✏️ Edit</a>
+                            <a href="/receipt/${receiptDbId}/delete" class="btn btn-sm btn-delete" title="Delete receipt">🗑️ Delete</a>
+                        </div>
+                    </td>
                 </tr>`;
                 html += `<tr class="receipt-details" id="${receiptId}">
-                    <td colspan="5">
+                    <td colspan="6">
                         <table class="receipt-items-table">`;
                 if (item.itemsList && item.itemsList.length > 0) {
                     item.itemsList.forEach(itm => {
+                        const itemDbId = itm.line_item_id;
                         html += `<tr>
-                            <td style="width: 50%;">${itm.item_name || '-'}</td>
-                            <td style="width: 15%; text-align: center;">x${itm.quantity || 1}</td>
-                            <td style="width: 17%; text-align: right;">$${(itm.unit_price || 0).toFixed(2)}</td>
-                            <td style="width: 18%; text-align: right;">$${(itm.total_price || 0).toFixed(2)}</td>
+                            <td style="width: 40%;">${itm.item_name || '-'}</td>
+                            <td style="width: 12%; text-align: center;">x${itm.quantity || 1}</td>
+                            <td style="width: 15%; text-align: right;">$${(itm.unit_price || 0).toFixed(2)}</td>
+                            <td style="width: 15%; text-align: right;">$${(itm.total_price || 0).toFixed(2)}</td>
+                            <td style="width: 18%; text-align: right;">
+                                <button class="btn btn-xs btn-delete" onclick="deleteLineItem(${itemDbId})" title="Delete item">🗑️</button>
+                            </td>
                         </tr>`;
                     });
                 } else {
-                    html += `<tr><td colspan="4" style="text-align: center; color: #888;">No items</td></tr>`;
+                    html += `<tr><td colspan="5" style="text-align: center; color: #888;">No items</td></tr>`;
                 }
                 html += `</table></td></tr>`;
             } else if (currentView === 'stores') {
@@ -355,10 +367,48 @@
         }
     }
 
+    // Delete Functions
+    function deleteLineItem(lineItemId) {
+        if (!confirm('Soft delete this item? It will no longer be included in your spending analysis.')) {
+            return;
+        }
+        
+        fetch(`/api/lineitem/${lineItemId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ delete_type: 'soft' })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                // Reload data after a short delay
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(data.message || 'Delete failed', 'error');
+            }
+        })
+        .catch(error => {
+            showAlert('Error: ' + error.message, 'error');
+        });
+    }
+
     // Initialize data view on page load
     document.addEventListener('DOMContentLoaded', function() {
         if (allTransactions && allTransactions.length > 0) {
             sortData();
+        }
+        
+        // Set up modal close on outside click
+        const modal = document.getElementById('deleteModal');
+        if (modal) {
+            window.onclick = function(event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            }
         }
     });
 
@@ -370,6 +420,48 @@
         showAlert(decodeURIComponent(message), msgType || 'success');
     }
 </script>
+
+<style>
+    .action-buttons {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 0.875rem;
+        text-decoration: none;
+        display: inline-block;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-edit {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background-color: #0056b3;
+    }
+
+    .btn-delete {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background-color: #c82333;
+    }
+
+    .btn-xs {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+    }
+</style>
         </div>
     </div>
 </body>

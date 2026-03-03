@@ -10,6 +10,7 @@ import json
 import unicodedata
 import re
 from datetime import datetime
+import traceback
 
 # Import existing modules
 from spend_analyzer.data_manager import DataManager
@@ -21,9 +22,23 @@ from spend_analyzer.db import Base, get_engine, get_session
 from spend_analyzer.models import User, Location, Receipt, LineItem, UserHistory, Recommendation
 from spend_analyzer.migrate import migrate_from_json
 
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
 
-# Database URL - using spend_data.db for new SQLAlchemy-managed data
-DB_URL = "sqlite:///spend_data.db"
+
+# ====== DATABASE CONFIGURATION ======
+
+# Determine database based on environment
+if os.environ.get('FLASK_ENV') == 'production':
+    # Use PostgreSQL in production
+    DB_URL = os.environ.get('DATABASE_URL')
+    if DB_URL and DB_URL.startswith('postgres://'):
+        # Fix PostgreSQL URL scheme for SQLAlchemy 1.4+
+        DB_URL = DB_URL.replace('postgres://', 'postgresql://', 1)
+else:
+    # Use SQLite in development
+    DB_URL = "sqlite:///spend_data.db"
 
 
 # === Database Helper Functions ===
@@ -41,6 +56,7 @@ def get_transactions_from_db(username):
     """
     Get all transactions for a user from database in dict format.
     Returns list of dicts compatible with existing code.
+    Excludes soft-deleted receipts and line items.
     """
     db_session = get_session(DB_URL)
     try:
@@ -50,9 +66,19 @@ def get_transactions_from_db(username):
         
         transactions = []
         for receipt in user.receipts:
+            # Skip soft-deleted receipts
+            if not receipt.is_active:
+                continue
+                
             for item in receipt.line_items:
+                # Skip soft-deleted line items
+                if not item.is_active:
+                    continue
+                    
                 tx = {
                     "transaction_id": f"tx_{item.id}",
+                    "receipt_id": receipt.id,
+                    "line_item_id": item.id,
                     "user_id": username,
                     "date": receipt.date.isoformat() if receipt.date else None,
                     "store": receipt.location.store_number,
@@ -317,6 +343,254 @@ def delete_user_data_from_db(username, delete_upload_history=True):
         db_session.close()
 
 
+# === Soft Delete and Hard Delete Functions ===
+
+def soft_delete_receipt(username, receipt_id):
+    """
+    Soft delete a receipt - sets is_active to False
+    Also soft deletes all associated line items
+    """
+    db_session = get_session(DB_URL)
+    try:
+        user = db_session.query(User).filter_by(username=username).first()
+        if not user:
+            return False, "User not found"
+        
+        receipt = db_session.query(Receipt).filter_by(id=receipt_id, user_id=user.id).first()
+        if not receipt:
+            return False, "Receipt not found"
+        
+        # Soft delete the receipt
+        receipt.is_active = False
+        receipt.updated_at = datetime.utcnow()
+        
+        # Soft delete all line items
+        for item in receipt.line_items:
+            item.is_active = False
+            item.updated_at = datetime.utcnow()
+        
+        db_session.commit()
+        return True, "Receipt deleted successfully"
+    except Exception as e:
+        db_session.rollback()
+        return False, str(e)
+    finally:
+        db_session.close()
+
+
+def hard_delete_receipt(username, receipt_id):
+    """
+    Hard delete a receipt - completely removes it and all associated line items
+    """
+    db_session = get_session(DB_URL)
+    try:
+        user = db_session.query(User).filter_by(username=username).first()
+        if not user:
+            return False, "User not found"
+        
+        receipt = db_session.query(Receipt).filter_by(id=receipt_id, user_id=user.id).first()
+        if not receipt:
+            return False, "Receipt not found"
+        
+        # Delete the receipt (cascade will delete line items)
+        db_session.delete(receipt)
+        db_session.commit()
+        return True, "Receipt permanently deleted"
+    except Exception as e:
+        db_session.rollback()
+        return False, str(e)
+    finally:
+        db_session.close()
+
+
+def soft_delete_line_item(username, line_item_id):
+    """
+    Soft delete a line item - sets is_active to False
+    """
+    db_session = get_session(DB_URL)
+    try:
+        # Verify user owns this line item
+        user = db_session.query(User).filter_by(username=username).first()
+        if not user:
+            return False, "User not found"
+        
+        # Query line item through receipt to verify ownership
+        line_item = db_session.query(LineItem).join(Receipt).filter(
+            LineItem.id == line_item_id,
+            Receipt.user_id == user.id
+        ).first()
+        
+        if not line_item:
+            return False, "Line item not found"
+        
+        # Soft delete the line item
+        line_item.is_active = False
+        line_item.updated_at = datetime.utcnow()
+        
+        db_session.commit()
+        return True, "Item deleted successfully"
+    except Exception as e:
+        db_session.rollback()
+        return False, str(e)
+    finally:
+        db_session.close()
+
+
+def hard_delete_line_item(username, line_item_id):
+    """
+    Hard delete a line item - completely removes it
+    """
+    db_session = get_session(DB_URL)
+    try:
+        user = db_session.query(User).filter_by(username=username).first()
+        if not user:
+            return False, "User not found"
+        
+        # Query line item through receipt to verify ownership
+        line_item = db_session.query(LineItem).join(Receipt).filter(
+            LineItem.id == line_item_id,
+            Receipt.user_id == user.id
+        ).first()
+        
+        if not line_item:
+            return False, "Line item not found"
+        
+        # Delete the line item
+        db_session.delete(line_item)
+        db_session.commit()
+        return True, "Item permanently deleted"
+    except Exception as e:
+        db_session.rollback()
+        return False, str(e)
+    finally:
+        db_session.close()
+
+
+def get_receipt_for_editing(username, receipt_id):
+    """
+    Get receipt data for editing, including all line items with discount info
+    Returns tuple: (receipt_dict, line_items_list)
+    """
+    db_session = get_session(DB_URL)
+    try:
+        user = db_session.query(User).filter_by(username=username).first()
+        if not user:
+            return None, []
+        
+        receipt = db_session.query(Receipt).filter_by(id=receipt_id, user_id=user.id).first()
+        if not receipt:
+            return None, []
+        
+        receipt_dict = {
+            "id": receipt.id,
+            "date": receipt.date.isoformat() if receipt.date else "",
+            "store_number": receipt.location.store_number,
+            "store_name": receipt.location.store_name,
+            "order_number": receipt.order_number,
+            "total_amount": receipt.total_amount,
+            "location_id": receipt.location_id
+        }
+        
+        line_items = []
+        for item in receipt.line_items:
+            # Skip RECEIPT_TOTAL and DISCOUNT items (legacy support)
+            if item.item_name == "RECEIPT_TOTAL" or (item.item_name and item.item_name.startswith("DISCOUNT (")):
+                continue
+            
+            # Calculate discount from the item data: (unit_price * quantity) - total_price
+            if item.unit_price and item.quantity:
+                discount = (item.unit_price * item.quantity) - item.total_price
+            else:
+                discount = 0
+            
+            line_items.append({
+                "id": item.id,
+                "item_name": item.item_name,
+                "product_upc": item.product_upc,
+                "quantity": item.quantity,
+                "unit_price": item.unit_price,
+                "total_price": item.total_price,
+                "discount": discount
+            })
+        
+        return receipt_dict, line_items
+    finally:
+        db_session.close()
+
+
+def update_receipt_in_db(username, receipt_id, receipt_data, line_items_data):
+    """
+    Update a receipt and its line items (discount stored as price difference, no separate DISCOUNT rows)
+    """
+    db_session = get_session(DB_URL)
+    try:
+        user = db_session.query(User).filter_by(username=username).first()
+        if not user:
+            return False, "User not found"
+        
+        receipt = db_session.query(Receipt).filter_by(id=receipt_id, user_id=user.id).first()
+        if not receipt:
+            return False, "Receipt not found"
+        
+        # Update receipt
+        from datetime import datetime as dt
+        receipt.date = dt.strptime(receipt_data['date'], '%Y-%m-%d').date()
+        receipt.order_number = receipt_data.get('order_number')
+        receipt.total_amount = float(receipt_data.get('total_amount', 0))
+        receipt.updated_at = datetime.utcnow()
+        
+        # Update or create line items
+        existing_ids = set()
+        
+        for item_data in line_items_data:
+            item_id = item_data.get('id')
+            discount = float(item_data.get('discount', 0))
+            quantity = float(item_data.get('quantity', 1))
+            unit_price = float(item_data.get('unit_price', 0)) if item_data.get('unit_price') else None
+            
+            # Calculate total_price: (unit_price * quantity) - discount
+            subtotal = unit_price * quantity if unit_price else 0
+            total_price = subtotal - discount
+            
+            if item_id:
+                # Update existing line item
+                line_item = db_session.query(LineItem).filter_by(id=item_id, receipt_id=receipt.id).first()
+                if line_item:
+                    line_item.item_name = item_data.get('item_name', '')
+                    line_item.product_upc = item_data.get('product_upc')
+                    line_item.quantity = quantity
+                    line_item.unit_price = unit_price
+                    line_item.total_price = total_price
+                    line_item.updated_at = datetime.utcnow()
+                    existing_ids.add(item_id)
+            else:
+                # Create new line item
+                new_item = LineItem(
+                    receipt_id=receipt.id,
+                    item_name=item_data.get('item_name', ''),
+                    product_upc=item_data.get('product_upc'),
+                    quantity=quantity,
+                    unit_price=unit_price,
+                    total_price=total_price
+                )
+                db_session.add(new_item)
+                db_session.flush()
+                existing_ids.add(new_item.id)
+        
+        # Delete line items that were not provided
+        for item in receipt.line_items:
+            if item.id not in existing_ids:
+                db_session.delete(item)
+        
+        db_session.commit()
+        return True, "Receipt updated successfully"
+    except Exception as e:
+        db_session.rollback()
+        return False, str(e)
+    finally:
+        db_session.close()
+
+
 def filter_context_by_question(transactions, question):
     """
     Intelligently filter transactions based on the user's question.
@@ -499,7 +773,22 @@ Total: ${{ "%.2f"|format(grand_total) }} across {{ item_count }} items""")
 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+# Load configuration
+config_name = os.environ.get('FLASK_ENV', 'development')
+if config_name == 'production':
+    from config import ProductionConfig
+    app.config.from_object(ProductionConfig)
+else:
+    from config import DevelopmentConfig
+    app.config.from_object(DevelopmentConfig)
+
+# Override secret key from environment if set
+if os.environ.get('SECRET_KEY'):
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+else:
+    # Generate a random secret key for development
+    app.secret_key = os.urandom(24)
 
 # Initialize shared instances
 dm = DataManager()
@@ -604,43 +893,25 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    """Main route - renders the single-page application"""
+    """Main route - redirect to analytics dashboard"""
+    return redirect(url_for('analytics_page'))
+
+
+@app.route('/analytics')
+@login_required
+def analytics_page():
+    """Analytics dashboard with comprehensive spending reports"""
     user_id = session.get('username', '')
-    user = get_current_user()
     
     transactions = []
-    total_spent = 0
-    store_count = 0
-    recommendations = []
-    
     if user_id:
         transactions = get_transactions_from_db(user_id)
-        
-        # Calculate stats (exclude RECEIPT_TOTAL to avoid double-counting)
-        stores = set()
-        for tx in transactions:
-            if tx.get('item_name') == 'RECEIPT_TOTAL':
-                continue  # Skip receipt totals - they duplicate item totals
-            try:
-                total_spent += float(tx.get('total_price') or 0)
-            except:
-                pass
-            if tx.get('store'):
-                stores.add(tx.get('store'))
-        store_count = len(stores)
-        
-        # Load recommendations from database
-        recommendations = get_recommendations_from_db(user_id)
     
     return render_template(
-        'index.html',
+        'analytics.html',
         user_id=user_id,
         transactions=transactions,
-        transaction_count=len(transactions),
-        total_spent=total_spent,
-        store_count=store_count,
-        recommendations=recommendations,
-        rec_count=len(recommendations)
+        transaction_count=len(transactions)
     )
 
 
@@ -840,6 +1111,166 @@ def data_page():
     )
 
 
+# === Edit and Delete Routes ===
+
+@app.route('/receipt/<int:receipt_id>/edit', methods=['GET'])
+@login_required
+def edit_receipt_page(receipt_id):
+    """Route to display edit receipt form with pre-filled data"""
+    user_id = session.get('username', '')
+    
+    receipt_data, line_items = get_receipt_for_editing(user_id, receipt_id)
+    if not receipt_data:
+        return redirect(url_for('data_page', message='Receipt not found', type='error'))
+    
+    transactions = []
+    if user_id:
+        transactions = get_transactions_from_db(user_id)
+    
+    return render_template(
+        'edit_receipt.html',
+        user_id=user_id,
+        receipt=receipt_data,
+        line_items=line_items,
+        transactions=transactions,
+        transaction_count=len(transactions)
+    )
+
+
+@app.route('/receipt/<int:receipt_id>/delete', methods=['GET'])
+@login_required
+def delete_receipt_page(receipt_id):
+    """Route to display delete confirmation page"""
+    user_id = session.get('username', '')
+    
+    receipt_data, line_items = get_receipt_for_editing(user_id, receipt_id)
+    if not receipt_data:
+        return redirect(url_for('data_page', message='Receipt not found', type='error'))
+    
+    return render_template(
+        'delete_receipt.html',
+        user_id=user_id,
+        receipt=receipt_data,
+        line_items=line_items
+    )
+
+
+@app.route('/receipt/<int:receipt_id>/update', methods=['POST'])
+@login_required
+def update_receipt(receipt_id):
+    """Route to update an existing receipt"""
+    user_id = session.get('username', '')
+    
+    try:
+        # Parse receipt data
+        receipt_data = {
+            'date': request.form.get('date', '').strip(),
+            'store_number': request.form.get('store_number', '').strip(),
+            'store_name': request.form.get('store_name', '').strip() or 'unknown',
+            'order_number': request.form.get('order_number', '').strip(),
+            'total_amount': request.form.get('total_amount', '0')
+        }
+        
+        # Validate required fields
+        if not receipt_data['date']:
+            return redirect(url_for('edit_receipt_page', receipt_id=receipt_id, 
+                                   message='Date is required', type='error'))
+        
+        if not receipt_data['store_number']:
+            return redirect(url_for('edit_receipt_page', receipt_id=receipt_id,
+                                   message='Store number is required', type='error'))
+        
+        # Parse line items from form data
+        line_items = []
+        i = 0
+        total = 0
+        while True:
+            item_name = request.form.get(f'items[{i}][name]')
+            if item_name is None:
+                break
+            
+            if item_name.strip():
+                item_id = request.form.get(f'items[{i}][id]')
+                item_price = float(request.form.get(f'items[{i}][price]', '0') or '0')
+                item_qty = float(request.form.get(f'items[{i}][qty]', '1') or '1')
+                item_discount = float(request.form.get(f'items[{i}][discount]', '0') or '0')
+                item_subtotal = item_price * item_qty
+                item_total = item_subtotal - item_discount
+                total += item_total
+                
+                line_items.append({
+                    'id': int(item_id) if item_id else None,
+                    'item_name': item_name.strip(),
+                    'quantity': item_qty,
+                    'unit_price': item_price,
+                    'total_price': item_total,
+                    'product_upc': request.form.get(f'items[{i}][upc]'),
+                    'discount': item_discount
+                })
+            i += 1
+        
+        if not line_items:
+            return redirect(url_for('edit_receipt_page', receipt_id=receipt_id,
+                                   message='At least one item is required', type='error'))
+        
+        receipt_data['total_amount'] = total
+        
+        # Update in database
+        success, message = update_receipt_in_db(user_id, receipt_id, receipt_data, line_items)
+        
+        if success:
+            return redirect(url_for('data_page', message='Receipt updated successfully!', type='success'))
+        else:
+            return redirect(url_for('edit_receipt_page', receipt_id=receipt_id,
+                                   message=f'Error: {message}', type='error'))
+    
+    except Exception as e:
+        return redirect(url_for('edit_receipt_page', receipt_id=receipt_id,
+                               message=f'Error: {str(e)}', type='error'))
+
+
+@app.route('/api/receipt/<int:receipt_id>/delete', methods=['POST'])
+@login_required
+def delete_receipt(receipt_id):
+    """Route to delete a receipt (soft or hard delete via API)"""
+    user_id = session.get('username', '')
+    delete_type = request.json.get('delete_type', 'soft')  # 'soft' or 'hard'
+    
+    try:
+        if delete_type == 'hard':
+            success, message = hard_delete_receipt(user_id, receipt_id)
+        else:
+            success, message = soft_delete_receipt(user_id, receipt_id)
+        
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/lineitem/<int:line_item_id>/delete', methods=['POST'])
+@login_required
+def delete_line_item(line_item_id):
+    """Route to delete a line item (soft or hard delete via API)"""
+    user_id = session.get('username', '')
+    delete_type = request.json.get('delete_type', 'soft')  # 'soft' or 'hard'
+    
+    try:
+        if delete_type == 'hard':
+            success, message = hard_delete_line_item(user_id, line_item_id)
+        else:
+            success, message = soft_delete_line_item(user_id, line_item_id)
+        
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/settings')
 @login_required
 def settings_page():
@@ -921,20 +1352,6 @@ def add_receipt():
                 'orderno': orderno
             }
             transactions.append(tx)
-            
-            # Add discount line item if there's a discount
-            if item_discount > 0:
-                transactions.append({
-                    'user_id': user_id,
-                    'item_name': f"DISCOUNT ({item.get('name')})",
-                    'unit_price': -item_discount,
-                    'quantity': 1,
-                    'total_price': -item_discount,
-                    'store': store_number,
-                    'source': store_name,
-                    'date': date_str,
-                    'orderno': orderno
-                })
         
         # Add receipt total (for reference, not counted in stats)
         transactions.append({
@@ -953,6 +1370,275 @@ def add_receipt():
         return jsonify({'success': True, 'imported': result.get('imported', 0)})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/analytics', methods=['GET'])
+@login_required
+def get_analytics():
+    """
+    Comprehensive analytics endpoint with detailed breakdown of:
+    - Summary statistics
+    - Monthly and weekly trends
+    - Store breakdown with percentages
+    - Category breakdown
+    - Top items and stores
+    - Daily spending patterns
+    - Recent activity
+    """
+    try:
+        user_id = session.get('username')
+        db_session = get_session(DB_URL)
+        
+        try:
+            user = db_session.query(User).filter_by(username=user_id).first()
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+            
+            from collections import defaultdict
+            from datetime import datetime, timedelta
+            from decimal import Decimal
+            
+            # Fetch all active receipts and line items
+            receipts = [r for r in user.receipts if r.is_active]
+            
+            if not receipts:
+                return jsonify({
+                    'summary': {
+                        'totalSpent': 0,
+                        'itemCount': 0,
+                        'transactionCount': 0,
+                        'storeCount': 0,
+                        'averageTransaction': 0,
+                        'dateRange': {'start': None, 'end': None}
+                    },
+                    'byMonth': [],
+                    'byStore': [],
+                    'byCategory': [],
+                    'topItems': [],
+                    'topStores': [],
+                    'weeklyPattern': {},
+                    'recent': [],
+                    'insights': []
+                })
+            
+            # ====== SUMMARY STATISTICS ======
+            total_spent = 0
+            item_count = 0
+            store_names = set()
+            all_dates = []
+            transaction_dates = defaultdict(float)
+            
+            for receipt in receipts:
+                if receipt.date:
+                    all_dates.append(receipt.date)
+                    transaction_dates[receipt.date] += receipt.total_amount
+                
+                store_names.add(receipt.location.store_name)
+                
+                for item in receipt.line_items:
+                    if item.is_active:
+                        item_count += 1
+                        total_spent += item.total_price
+            
+            summary = {
+                'totalSpent': round(float(total_spent), 2),
+                'itemCount': item_count,
+                'transactionCount': len(receipts),
+                'storeCount': len(store_names),
+                'averageTransaction': round(float(total_spent / len(receipts)), 2) if receipts else 0,
+                'dateRange': {
+                    'start': min(all_dates).isoformat() if all_dates else None,
+                    'end': max(all_dates).isoformat() if all_dates else None
+                }
+            }
+            
+            # ====== MONTHLY BREAKDOWN ======
+            monthly_data = defaultdict(lambda: {'spent': 0, 'count': 0, 'receipts': 0})
+            
+            for receipt in receipts:
+                if receipt.date:
+                    month_key = receipt.date.strftime('%Y-%m')
+                    monthly_data[month_key]['receipts'] += 1
+                    monthly_data[month_key]['spent'] += receipt.total_amount
+                    
+                    for item in receipt.line_items:
+                        if item.is_active:
+                            monthly_data[month_key]['count'] += 1
+            
+            by_month = []
+            for month in sorted(monthly_data.keys(), reverse=True):
+                data = monthly_data[month]
+                by_month.append({
+                    'month': month,
+                    'spent': round(float(data['spent']), 2),
+                    'itemCount': data['count'],
+                    'receiptCount': data['receipts'],
+                    'averageReceipt': round(float(data['spent'] / data['receipts']), 2) if data['receipts'] else 0
+                })
+            
+            # ====== STORE BREAKDOWN ======
+            store_data = defaultdict(lambda: {'spent': 0, 'count': 0, 'receipts': 0, 'dates': []})
+            
+            for receipt in receipts:
+                store_name = receipt.location.store_name
+                store_data[store_name]['receipts'] += 1
+                store_data[store_name]['spent'] += receipt.total_amount
+                if receipt.date:
+                    store_data[store_name]['dates'].append(receipt.date)
+                
+                for item in receipt.line_items:
+                    if item.is_active:
+                        store_data[store_name]['count'] += 1
+            
+            by_store = []
+            for store_name in sorted(store_data.keys()):
+                data = store_data[store_name]
+                pct = (data['spent'] / total_spent * 100) if total_spent > 0 else 0
+                
+                # Calculate frequency (visits per month)
+                if data['dates']:
+                    date_range = (max(data['dates']) - min(data['dates'])).days
+                    months_range = max(date_range / 30, 1)
+                    frequency = round(data['receipts'] / months_range, 1)
+                else:
+                    frequency = 0
+                
+                by_store.append({
+                    'name': store_name,
+                    'spent': round(float(data['spent']), 2),
+                    'itemCount': data['count'],
+                    'receiptCount': data['receipts'],
+                    'percentage': round(pct, 1),
+                    'averageReceipt': round(float(data['spent'] / data['receipts']), 2) if data['receipts'] else 0,
+                    'visitFrequency': frequency
+                })
+            
+            by_store.sort(key=lambda x: x['spent'], reverse=True)
+            
+            # ====== CATEGORY BREAKDOWN ======
+            category_data = defaultdict(lambda: {'spent': 0, 'count': 0})
+            
+            for receipt in receipts:
+                for item in receipt.line_items:
+                    if item.is_active:
+                        category = item.category or 'Uncategorized'
+                        category_data[category]['spent'] += item.total_price
+                        category_data[category]['count'] += 1
+            
+            by_category = []
+            for category in sorted(category_data.keys()):
+                data = category_data[category]
+                pct = (data['spent'] / total_spent * 100) if total_spent > 0 else 0
+                
+                by_category.append({
+                    'name': category,
+                    'spent': round(float(data['spent']), 2),
+                    'itemCount': data['count'],
+                    'percentage': round(pct, 1),
+                    'averageItem': round(float(data['spent'] / data['count']), 2) if data['count'] > 0 else 0
+                })
+            
+            by_category.sort(key=lambda x: x['spent'], reverse=True)
+            
+            # ====== TOP ITEMS ======
+            item_data = defaultdict(lambda: {'spent': 0, 'count': 0, 'stores': set()})
+            
+            for receipt in receipts:
+                for item in receipt.line_items:
+                    if item.is_active:
+                        item_name = item.item_name
+                        item_data[item_name]['spent'] += item.total_price
+                        item_data[item_name]['count'] += item.quantity
+                        item_data[item_name]['stores'].add(receipt.location.store_name)
+            
+            top_items = []
+            for item_name in sorted(item_data.keys(), key=lambda x: item_data[x]['spent'], reverse=True)[:15]:
+                data = item_data[item_name]
+                top_items.append({
+                    'name': item_name[:40],  # Truncate for display
+                    'spent': round(float(data['spent']), 2),
+                    'quantity': round(float(data['count']), 1),
+                    'storeCount': len(data['stores']),
+                    'averagePrice': round(float(data['spent'] / data['count']), 2) if data['count'] > 0 else 0
+                })
+            
+            # ====== WEEKLY PATTERN ======
+            day_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            weekly_data = defaultdict(lambda: {'spent': 0, 'count': 0})
+            
+            for receipt in receipts:
+                if receipt.date:
+                    dow = receipt.date.weekday()
+                    weekly_data[dow]['spent'] += receipt.total_amount
+                    weekly_data[dow]['count'] += 1
+            
+            weekly_pattern = {}
+            for i in range(7):
+                weekly_pattern[day_of_week[i]] = {
+                    'spent': round(float(weekly_data[i]['spent']), 2),
+                    'receiptCount': weekly_data[i]['count'],
+                    'averageReceipt': round(float(weekly_data[i]['spent'] / weekly_data[i]['count']), 2) if weekly_data[i]['count'] > 0 else 0
+                }
+            
+            # ====== RECENT ACTIVITY ======
+            recent_receipts = sorted(receipts, key=lambda x: x.date or datetime.min, reverse=True)[:10]
+            recent = []
+            for receipt in recent_receipts:
+                item_count = len([i for i in receipt.line_items if i.is_active])
+                recent.append({
+                    'id': receipt.id,
+                    'date': receipt.date.isoformat() if receipt.date else None,
+                    'store': receipt.location.store_name,
+                    'spent': round(float(receipt.total_amount), 2),
+                    'itemCount': item_count
+                })
+            
+            # ====== INSIGHTS ======
+            insights = []
+            
+            # Top spending category
+            if by_category:
+                top_cat = by_category[0]
+                insights.append(f"You spend the most on {top_cat['name']} ({top_cat['percentage']}% of total)")
+            
+            # Top store
+            if by_store:
+                top_store = by_store[0]
+                insights.append(f"Your top store is {top_store['name']} with ${top_store['spent']} spent")
+            
+            # Most visited day
+            if weekly_pattern:
+                most_visited = max(weekly_pattern.items(), key=lambda x: x[1]['receiptCount'])
+                insights.append(f"You shop most on {most_visited[0]}s ({most_visited[1]['receiptCount']} visits)")
+            
+            # Average spending
+            if summary['averageTransaction'] > 0:
+                insights.append(f"Your average purchase is ${summary['averageTransaction']}")
+            
+            # Top item
+            if top_items:
+                top_item = top_items[0]
+                insights.append(f"Your most purchased item is {top_item['name']} ({top_item['quantity']} units)")
+            
+            return jsonify({
+                'summary': summary,
+                'byMonth': by_month,
+                'byStore': by_store,
+                'byCategory': by_category,
+                'topItems': top_items,
+                'topStores': by_store[:5],
+                'weeklyPattern': weekly_pattern,
+                'recent': recent,
+                'insights': insights
+            })
+        
+        finally:
+            db_session.close()
+    
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/llm_context', methods=['GET'])

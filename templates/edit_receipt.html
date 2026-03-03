@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Receipt - Spend Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="{{ 'theme-' + session.get('theme', 'default') if session.get('theme') and session.get('theme') != 'default' else '' }}">
+    <div class="container">
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            
+            <!-- Prominent Back Button -->
+            <a href="/data" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 24px; font-size: 1rem;">
+                ← Back to Data
+            </a>
+            
+            <h2 class="section-title">Edit Receipt</h2>
+
+{% if not user_id %}
+<div class="no-data">
+    <p>Please <a href="/">load a user</a> first to edit receipts.</p>
+</div>
+{% elif receipt %}
+<form method="POST" action="{{ url_for('update_receipt', receipt_id=receipt.id) }}" id="receiptForm">
+    <input type="hidden" name="user_id" value="{{ user_id }}">
+    <input type="hidden" name="receipt_id" value="{{ receipt.id }}">
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        <!-- Left Column: Receipt Details -->
+        <div>
+            <h3 style="margin-bottom: 15px;">Receipt Details</h3>
+            
+            <div class="form-group">
+                <label>Store Number *</label>
+                <input type="text" name="store_number" id="storeNumber" required placeholder="e.g., 1234" value="{{ receipt.store_number }}">
+            </div>
+            
+            <div class="form-group">
+                <label>Store Name</label>
+                <input type="text" name="store_name" id="storeName" placeholder="e.g., Walmart" value="{{ receipt.store_name }}">
+            </div>
+            
+            <div class="form-group">
+                <label>Date *</label>
+                <input type="date" name="date" id="receiptDate" required value="{{ receipt.date }}">
+            </div>
+            
+            <div class="form-group">
+                <label>Order Number</label>
+                <input type="text" name="order_number" id="orderNumber" placeholder="Optional" value="{{ receipt.order_number or '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label>Total Amount</label>
+                <input type="number" name="total_amount" id="totalAmount" step="0.01" min="0" readonly placeholder="Auto-calculated" value="{{ receipt.total_amount or '' }}">
+                <small style="color: #666;">This will be auto-calculated from items</small>
+            </div>
+        </div>
+        
+        <!-- Right Column: Items -->
+        <div>
+            <h3 style="margin-bottom: 15px;">Items</h3>
+            
+            <div id="itemsContainer">
+                {% for item in line_items %}
+                <div class="item-entry" data-index="{{ loop.index0 }}">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Item Name *</label>
+                            <input type="hidden" name="items[{{ loop.index0 }}][id]" value="{{ item.id }}">
+                            <input type="text" name="items[{{ loop.index0 }}][name]" required placeholder="Product name" value="{{ item.item_name }}">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Price ($) *</label>
+                            <input type="number" name="items[{{ loop.index0 }}][price]" step="0.01" min="0" required placeholder="0.00" value="{{ item.unit_price or '' }}">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Qty</label>
+                            <input type="number" name="items[{{ loop.index0 }}][qty]" value="{{ item.quantity or 1 }}" min="1">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Discount ($)</label>
+                            {% set discount = (item.unit_price * item.quantity) - item.total_price %}
+                            <input type="number" name="items[{{ loop.index0 }}][discount]" step="0.01" min="0" placeholder="0.00" value="{{ discount }}">
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="removeItem(this)" style="padding: 8px 12px; color: var(--danger);">✕</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" class="btn btn-secondary" onclick="addNewItem()" style="width: 100%; margin-top: 10px;">
+                + Add Another Item
+            </button>
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px; text-align: center; display: flex; gap: 15px; justify-content: center;">
+        <a href="/data" class="btn btn-secondary" style="padding: 15px 50px; font-size: 1.1rem; text-decoration: none;">
+            Cancel
+        </a>
+        <button type="submit" class="btn" style="padding: 15px 50px; font-size: 1.1rem;">
+            💾 Save Changes
+        </button>
+    </div>
+</form>
+{% else %}
+<div class="no-data">
+    <p>Receipt not found. <a href="/data">Go back to data</a></p>
+</div>
+{% endif %}
+
+<script>
+    let itemIndex = {{ line_items|length or 0 }};
+    
+    function addNewItem() {
+        const container = document.getElementById('itemsContainer');
+        const newItem = document.createElement('div');
+        newItem.className = 'item-entry';
+        newItem.dataset.index = itemIndex;
+        newItem.innerHTML = `
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Item Name *</label>
+                    <input type="text" name="items[${itemIndex}][name]" required placeholder="Product name">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Price ($) *</label>
+                    <input type="number" name="items[${itemIndex}][price]" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Qty</label>
+                    <input type="number" name="items[${itemIndex}][qty]" value="1" min="1">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Discount ($)</label>
+                    <input type="number" name="items[${itemIndex}][discount]" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="removeItem(this)" style="padding: 8px 12px; color: var(--danger);">✕</button>
+            </div>
+        `;
+        container.appendChild(newItem);
+        itemIndex++;
+        // Focus on the new item name field
+        newItem.querySelector('input[type="text"]').focus();
+        updateTotal();
+    }
+    
+    function removeItem(btn) {
+        const container = document.getElementById('itemsContainer');
+        const entries = container.querySelectorAll('.item-entry');
+        
+        // Don't remove if it's the only item
+        if (entries.length <= 1) {
+            alert('You need at least one item on the receipt.');
+            return;
+        }
+        
+        btn.closest('.item-entry').remove();
+        updateTotal();
+    }
+    
+    function updateTotal() {
+        const container = document.getElementById('itemsContainer');
+        const entries = container.querySelectorAll('.item-entry');
+        let total = 0;
+        
+        entries.forEach(entry => {
+            // Find price and quantity inputs - adjust indices for dynamic structure
+            const inputs = entry.querySelectorAll('input[type="number"]');
+            // price is second number input, qty is third
+            if (inputs.length >= 2) {
+                const price = parseFloat(inputs[0].value) || 0;
+                const qty = parseFloat(inputs[1].value) || 1;
+                total += price * qty;
+            }
+        });
+        
+        const totalInput = document.getElementById('totalAmount');
+        if (totalInput) {
+            totalInput.value = total.toFixed(2);
+        }
+    }
+    
+    // Set up event listeners for total calculation
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('itemsContainer');
+        if (container) {
+            container.addEventListener('input', function(e) {
+                if (e.target.name && (e.target.name.includes('[price]') || e.target.name.includes('[qty]'))) {
+                    updateTotal();
+                }
+            });
+        }
+        updateTotal();
+    });
+    
+    // Show success/error messages from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    const msgType = urlParams.get('type');
+    if (message) {
+        const alertEl = document.getElementById('alert');
+        if (alertEl) {
+            alertEl.textContent = decodeURIComponent(message);
+            alertEl.className = 'alert alert-' + (msgType || 'success');
+            alertEl.classList.remove('hidden');
+            setTimeout(() => alertEl.classList.add('hidden'), 5000);
+        }
+    }
+</script>
+        </div>
+    </div>
+</body>
+</html>

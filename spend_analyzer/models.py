@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey, Float, DateTime
+from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey, Float, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash
 from .db import Base
@@ -55,7 +55,9 @@ class Receipt(Base):
     order_number = Column(String(100))  # orderno from data
     total_amount = Column(Float, default=0.0)
     currency = Column(String(10), default="USD")
+    is_active = Column(Boolean, default=True)  # For soft deletes
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     user = relationship("User", back_populates="receipts")
@@ -77,7 +79,9 @@ class LineItem(Base):
     unit_price = Column(Float)
     total_price = Column(Float, nullable=False)
     category = Column(String(100))
+    is_active = Column(Boolean, default=True)  # For soft deletes
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     receipt = relationship("Receipt", back_populates="line_items")

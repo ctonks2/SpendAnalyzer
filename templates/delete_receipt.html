@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Receipt - Spend Analyzer{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 40px auto; padding: 20px;">
+    <h1 style="color: var(--danger); margin-bottom: 30px;">Delete Receipt</h1>
+    
+    <div style="background: var(--surface); padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3 style="margin-top: 0;">Receipt Details</h3>
+        <div style="display: grid; grid-template-columns: 150px 1fr; gap: 15px; margin-bottom: 20px;">
+            <strong>Date:</strong>
+            <span>{{ receipt.date }}</span>
+            
+            <strong>Store:</strong>
+            <span>{{ receipt.store_name }} ({{ receipt.store_number }})</span>
+            
+            <strong>Order #:</strong>
+            <span>{{ receipt.order_number or 'N/A' }}</span>
+            
+            <strong>Items:</strong>
+            <span>{{ line_items|length }}</span>
+            
+            <strong>Total:</strong>
+            <span>${{ "%.2f"|format(receipt.total_amount) }}</span>
+        </div>
+    </div>
+
+    <div style="background: var(--surface); padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3 style="margin-top: 0;">Choose Delete Option</h3>
+        <p>How would you like to delete this receipt?</p>
+        
+        <div style="display: grid; gap: 15px;">
+            <div style="
+                border: 2px solid var(--border);
+                border-radius: 6px;
+                padding: 15px;
+                cursor: pointer;
+                transition: all 0.2s;
+            " id="softDeleteOption"
+            onmouseover="this.style.borderColor='var(--warning)'; this.style.backgroundColor='rgba(255,193,7,0.05)'"
+            onmouseout="this.style.borderColor='var(--border)'; this.style.backgroundColor='transparent'">
+                <input type="radio" name="deleteType" value="soft" id="softDelete" checked style="margin-right: 10px;">
+                <label for="softDelete" style="cursor: pointer;">
+                    <strong>Soft Delete (Recommended)</strong>
+                    <p style="margin: 5px 0 0 0; color: var(--textSecondary); font-size: 14px;">
+                        Hides the receipt from your data. You can't undo this action, but the data remains in the system as archived.
+                    </p>
+                </label>
+            </div>
+
+            <div style="
+                border: 2px solid var(--border);
+                border-radius: 6px;
+                padding: 15px;
+                cursor: pointer;
+                transition: all 0.2s;
+            " id="hardDeleteOption"
+            onmouseover="this.style.borderColor='var(--danger)'; this.style.backgroundColor='rgba(244,67,54,0.05)'"
+            onmouseout="this.style.borderColor='var(--border)'; this.style.backgroundColor='transparent'">
+                <input type="radio" name="deleteType" value="hard" id="hardDelete" style="margin-right: 10px;">
+                <label for="hardDelete" style="cursor: pointer;">
+                    <strong>Hard Delete (Permanent)</strong>
+                    <p style="margin: 5px 0 0 0; color: var(--danger); font-size: 14px;">
+                        <strong>⚠️ WARNING:</strong> Permanently removes all data. This action cannot be undone.
+                    </p>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; justify-content: space-between;">
+        <a href="{{ url_for('data_page') }}" class="btn btn-secondary" style="flex: 1; text-align: center;">
+            Cancel
+        </a>
+        <button type="button" class="btn btn-danger" onclick="confirmDelete()" style="flex: 1;">
+            Delete Receipt
+        </button>
+    </div>
+</div>
+
+<script>
+async function confirmDelete() {
+    const deleteType = document.querySelector('input[name="deleteType"]:checked').value;
+    const receiptId = {{ receipt.id }};
+    
+    // Additional confirmation for hard delete
+    if (deleteType === 'hard') {
+        if (!confirm('Are you absolutely sure? This cannot be undone!')) {
+            return;
+        }
+    }
+    
+    try {
+        const response = await fetch(`/api/receipt/${receiptId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ delete_type: deleteType })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Redirect back to data page with success message
+            window.location.href = `{{ url_for('data_page') }}?message=${encodeURIComponent('Receipt deleted successfully!')}&type=success`;
+        } else {
+            alert('Error: ' + (data.message || 'Failed to delete receipt'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+</script>
+
+<style>
+.btn-danger {
+    background-color: var(--danger);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.btn-danger:hover {
+    background-color: #d32f2f;
+}
+
+.btn-secondary {
+    background-color: var(--surface);
+    color: var(--text);
+    border: 2px solid var(--border);
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: var(--background);
+    border-color: var(--text);
+}
+</style>
+{% endblock %}
