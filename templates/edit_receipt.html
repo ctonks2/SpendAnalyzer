@@ -82,7 +82,11 @@
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
                             <label>Discount ($)</label>
-                            {% set discount = (item.unit_price * item.quantity) - item.total_price %}
+                            {% if item.unit_price and item.quantity %}
+                                {% set discount = (item.unit_price * item.quantity) - item.total_price %}
+                            {% else %}
+                                {% set discount = 0 %}
+                            {% endif %}
                             <input type="number" name="items[{{ loop.index0 }}][discount]" step="0.01" min="0" placeholder="0.00" value="{{ discount }}">
                         </div>
                         <button type="button" class="btn btn-secondary" onclick="removeItem(this)" style="padding: 8px 12px; color: var(--danger);">✕</button>

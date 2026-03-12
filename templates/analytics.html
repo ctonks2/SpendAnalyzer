@@ -172,14 +172,12 @@
     max-width: 1400px;
     margin: 0 auto;
     padding: 20px;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    min-height: 100vh;
 }
 
 .analytics-header {
     text-align: center;
     margin-bottom: 40px;
-    color: #1a1a1a;
+    color: var(--text-primary);
 }
 
 .analytics-header h1 {
@@ -190,7 +188,7 @@
 
 .subtitle {
     font-size: 1.1em;
-    color: #666;
+    color: var(--text-secondary);
     margin: 0;
 }
 
@@ -203,21 +201,23 @@
 }
 
 .summary-card {
-    background: white;
+    background: var(--bg-elevated);
     padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition);
 }
 
 .summary-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent);
 }
 
 .card-label {
     font-size: 0.9em;
-    color: #999;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 8px;
@@ -227,13 +227,13 @@
 .card-value {
     font-size: 2.2em;
     font-weight: 700;
-    color: #1a1a1a;
+    color: var(--accent);
     margin-bottom: 8px;
 }
 
 .card-sublabel {
     font-size: 0.85em;
-    color: #888;
+    color: var(--text-secondary);
 }
 
 /* Insights Section */
@@ -242,16 +242,18 @@
 }
 
 .insights-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
     padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--accent-subtle);
+    box-shadow: var(--shadow-sm);
 }
 
 .insights-card h3 {
     margin: 0 0 20px 0;
     font-size: 1.4em;
+    color: var(--accent);
 }
 
 .insights-card ul {
@@ -262,9 +264,10 @@
 
 .insights-card li {
     padding: 10px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.2);
+    border-bottom: 1px solid var(--border);
     font-size: 0.95em;
     line-height: 1.6;
+    color: var(--text-secondary);
 }
 
 .insights-card li:last-child {
@@ -274,44 +277,107 @@
 /* Charts Section */
 .charts-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-    gap: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
     margin-bottom: 40px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
+    .charts-section {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+}
+
+@media (max-width: 1024px) {
+    .charts-section {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
     .charts-section {
         grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .charts-section {
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 }
 
 .chart-container {
-    background: white;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: var(--bg-elevated);
+    padding: 20px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
     position: relative;
-    height: 400px;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .chart-header {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    flex-shrink: 0;
 }
 
 .chart-header h3 {
     margin: 0 0 5px 0;
-    font-size: 1.3em;
-    color: #1a1a1a;
+    font-size: 1.2em;
+    color: var(--text-primary);
+    word-break: break-word;
 }
 
 .chart-subtitle {
     margin: 0;
-    color: #888;
-    font-size: 0.9em;
+    color: var(--text-muted);
+    font-size: 0.85em;
 }
 
 .chart-container canvas {
-    max-height: 330px;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 250px;
+    flex-grow: 1;
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        padding: 15px;
+        min-height: 280px;
+    }
+    
+    .chart-header h3 {
+        font-size: 1.1em;
+    }
+    
+    .chart-container canvas {
+        max-height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-container {
+        padding: 12px;
+        min-height: 250px;
+    }
+    
+    .chart-header h3 {
+        font-size: 1em;
+    }
+    
+    .chart-header {
+        margin-bottom: 10px;
+    }
+    
+    .chart-container canvas {
+        max-height: 150px;
+    }
 }
 
 /* Details Section */
@@ -322,10 +388,11 @@
 }
 
 .detail-container {
-    background: white;
+    background: var(--bg-elevated);
     padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
     overflow-x: auto;
 }
 
@@ -336,12 +403,12 @@
 .detail-header h3 {
     margin: 0 0 5px 0;
     font-size: 1.3em;
-    color: #1a1a1a;
+    color: var(--text-primary);
 }
 
 .detail-subtitle {
     margin: 0;
-    color: #888;
+    color: var(--text-muted);
     font-size: 0.9em;
 }
 
@@ -358,26 +425,26 @@
 }
 
 .detail-table thead {
-    background: #f8f9fa;
-    border-bottom: 2px solid #e0e0e0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .detail-table th {
     padding: 15px;
     text-align: left;
     font-weight: 600;
-    color: #555;
+    color: var(--text-primary);
     font-size: 0.9em;
 }
 
 .detail-table td {
     padding: 15px;
-    border-bottom: 1px solid #f0f0f0;
-    color: #444;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
 }
 
 .detail-table tbody tr:hover {
-    background: #f8f9fa;
+    background: var(--bg-secondary);
 }
 
 .detail-table .num-col {
@@ -390,21 +457,21 @@
 }
 
 .detail-table a {
-    color: #667eea;
+    color: var(--accent);
     text-decoration: none;
     font-weight: 500;
-    transition: color 0.2s;
+    transition: color var(--transition);
 }
 
 .detail-table a:hover {
-    color: #764ba2;
+    color: var(--accent-hover);
     text-decoration: underline;
 }
 
 .percentage-badge {
     display: inline-block;
-    background: #e3f2fd;
-    color: #1976d2;
+    background: var(--accent-subtle);
+    color: var(--accent);
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 0.85em;
@@ -413,22 +480,23 @@
 
 .loader {
     text-align: center;
-    color: #999;
+    color: var(--text-muted);
     font-style: italic;
     padding: 30px !important;
 }
 
 /* Skeleton Loading */
 .card-skeleton {
-    background: white;
+    background: var(--bg-elevated);
     padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
 }
 
 .skeleton-line {
     height: 20px;
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-card) 50%, var(--bg-secondary) 75%);
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
     border-radius: 4px;
@@ -455,9 +523,10 @@
 
 .empty-state-content {
     padding: 40px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: var(--bg-elevated);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
     max-width: 500px;
 }
 
@@ -468,70 +537,192 @@
 
 .empty-state-content h2 {
     margin: 0 0 10px 0;
-    color: #1a1a1a;
+    color: var(--text-primary);
 }
 
 .empty-state-content p {
-    color: #888;
+    color: var(--text-secondary);
     margin-bottom: 20px;
 }
 
 .btn {
     display: inline-block;
     padding: 12px 24px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     text-decoration: none;
     font-weight: 600;
-    transition: all 0.2s;
+    transition: all var(--transition);
     border: none;
     cursor: pointer;
     font-size: 1em;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: var(--accent);
+    color: var(--bg-primary);
 }
 
 .btn-primary:hover {
+    background: var(--accent-hover);
     transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: var(--shadow-glow);
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
+    .analytics-container {
+        padding: 15px;
+    }
+    
     .analytics-header h1 {
+        font-size: 2em;
+    }
+    
+    .summary-cards {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .summary-card {
+        padding: 20px;
+    }
+    
+    .card-value {
         font-size: 1.8em;
     }
+}
 
+@media (max-width: 768px) {
+    .analytics-container {
+        padding: 10px;
+    }
+    
+    .analytics-header h1 {
+        font-size: 1.6em;
+    }
+    
+    .analytics-header {
+        margin-bottom: 25px;
+    }
+    
+    .subtitle {
+        font-size: 0.95em;
+    }
+    
     .summary-cards {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 15px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 25px;
     }
 
     .summary-card {
-        padding: 15px;
+        padding: 12px;
+    }
+    
+    .card-label {
+        font-size: 0.75em;
     }
 
     .card-value {
-        font-size: 1.6em;
+        font-size: 1.4em;
     }
-
-    .charts-section {
-        grid-template-columns: 1fr;
+    
+    .card-sublabel {
+        font-size: 0.75em;
     }
-
-    .chart-container {
-        height: 300px;
+    
+    .detail-container {
+        padding: 15px;
+    }
+    
+    .detail-header h3 {
+        font-size: 1.1em;
     }
 
     .detail-table {
-        font-size: 0.85em;
+        font-size: 0.8em;
     }
 
     .detail-table th,
     .detail-table td {
+        padding: 8px;
+    }
+    
+    .details-section {
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+}
+
+@media (max-width: 480px) {
+    .analytics-container {
+        padding: 8px;
+    }
+    
+    .analytics-header h1 {
+        font-size: 1.3em;
+        margin-bottom: 8px;
+    }
+    
+    .analytics-header {
+        margin-bottom: 15px;
+    }
+    
+    .subtitle {
+        font-size: 0.85em;
+    }
+    
+    .summary-cards {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .summary-card {
         padding: 10px;
+    }
+    
+    .card-label {
+        font-size: 0.7em;
+    }
+
+    .card-value {
+        font-size: 1.2em;
+    }
+    
+    .card-sublabel {
+        font-size: 0.7em;
+    }
+    
+    .detail-container {
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .detail-header h3 {
+        font-size: 1em;
+        margin-bottom: 8px;
+    }
+    
+    .detail-subtitle {
+        font-size: 0.8em;
+    }
+
+    .detail-table {
+        font-size: 0.7em;
+    }
+
+    .detail-table th,
+    .detail-table td {
+        padding: 6px;
+    }
+    
+    .insights-section {
+        margin-bottom: 20px;
+    }
+    
+    .insights-card {
+        padding: 15px;
     }
 }
 </style>
@@ -608,12 +799,12 @@ function renderCharts(data) {
             datasets: [{
                 label: 'Total Spent',
                 data: data.byMonth.map(m => m.spent).reverse(),
-                borderColor: '#667eea',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderColor: '#00d4aa',
+                backgroundColor: 'rgba(0, 212, 170, 0.1)',
                 fill: true,
                 tension: 0.4,
-                pointBackgroundColor: '#667eea',
-                pointBorderColor: '#fff',
+                pointBackgroundColor: '#00d4aa',
+                pointBorderColor: '#16161d',
                 pointBorderWidth: 2,
                 pointRadius: 5,
                 pointHoverRadius: 7,
@@ -646,8 +837,8 @@ function renderCharts(data) {
             labels: data.byStore.map(s => s.name),
             datasets: [{
                 data: data.byStore.map(s => s.spent),
-                backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#fee140'],
-                borderColor: '#fff',
+                backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#fee140'].map((color, i) => color + (80 + i * 3).toString(16).padStart(2, '0')),
+                borderColor: '#16161d',
                 borderWidth: 2
             }]
         },
@@ -674,8 +865,8 @@ function renderCharts(data) {
             datasets: [{
                 label: 'Amount Spent',
                 data: data.byCategory.map(c => c.spent),
-                backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                borderColor: '#667eea',
+                backgroundColor: 'rgba(0, 212, 170, 0.7)',
+                borderColor: '#00d4aa',
                 borderWidth: 1,
                 borderRadius: 6
             }]
@@ -705,8 +896,8 @@ function renderCharts(data) {
             datasets: [{
                 label: 'Average Spent',
                 data: days.map(day => data.weeklyPattern[day]?.spent || 0),
-                backgroundColor: '#764ba2',
-                borderColor: '#5a3a88',
+                backgroundColor: '#00d4aa',
+                borderColor: '#009b7f',
                 borderWidth: 1,
                 borderRadius: 6
             }]

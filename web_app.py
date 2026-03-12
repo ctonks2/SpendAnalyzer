@@ -74,6 +74,16 @@ def get_transactions_from_db(username):
                 # Skip soft-deleted line items
                 if not item.is_active:
                     continue
+                
+                # Skip items with "Unknown" or "Unknown Item" name
+                if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
+                    continue
+                
+                # Skip items with 0.00 price and 0.00 total
+                unit_price = float(item.unit_price or 0)
+                total_price = float(item.total_price or 0)
+                if unit_price == 0.0 and total_price == 0.0:
+                    continue
                     
                 tx = {
                     "transaction_id": f"tx_{item.id}",
@@ -96,6 +106,100 @@ def get_transactions_from_db(username):
         return transactions
     finally:
         db_session.close()
+
+
+def get_filename_date(filename):
+    """
+    Extract date from filename in format *_YYYYMMDD.json
+    Returns datetime.date object or None if not found
+    """
+    # Match pattern: _YYYYMMDD. before .json extension
+    match = re.search(r'_(\d{8})\.', filename)
+    if match:
+        try:
+            date_str = match.group(1)  # e.g., '20260301'
+            return datetime.strptime(date_str, "%Y%m%d").date()
+        except:
+            pass
+    return None
+
+
+def get_latest_import_date_for_file(username, current_filename):
+    """
+    Get the latest import date from previously uploaded files with the same base name.
+    
+    Example: If uploading "Smiths_20260301.json", looks for previously imported
+    "Smiths_20250423.json", "Smiths_20250415.json", etc. and returns the latest date.
+    
+    Args:
+        username: User ID
+        current_filename: Current file being imported (e.g., "Smiths_20260301.json")
+    
+    Returns:
+        datetime.date object of the latest previous import, or None if no previous imports
+    """
+    # Extract base name (everything before the date)
+    # e.g., "Smiths_20260301.json" -> "Smiths"
+    match = re.match(r'^(.+?)_\d{8}\.', current_filename)
+    if not match:
+        return None
+    
+    base_name = match.group(1)
+    
+    # Get all uploaded files for this user
+    uploaded_files = get_uploaded_files_from_db(username)
+    
+    # Find all files with the same base name and extract their dates
+    previous_dates = []
+    for filename in uploaded_files:
+        if filename.startswith(base_name + "_"):
+            file_date = get_filename_date(filename)
+            if file_date:
+                previous_dates.append(file_date)
+    
+    # Return the latest (max) date, or None if no previous dates
+    return max(previous_dates) if previous_dates else None
+
+
+def filter_transactions_by_date(transactions, cutoff_date):
+    """
+    Filter transactions to only include those AFTER cutoff_date.
+    This prevents duplicates when files contain overlapping data.
+    
+    Args:
+        transactions: List of transaction dicts
+        cutoff_date: datetime.date object (from previous file date)
+    
+    Returns:
+        Filtered list of transactions (only those with date > cutoff_date)
+    """
+    if not cutoff_date:
+        return transactions
+    
+    filtered = []
+    for tx in transactions:
+        date_str = tx.get("date")
+        if not date_str:
+            filtered.append(tx)  # Keep items without dates
+            continue
+        
+        try:
+            # Try MM/DD/YYYY format first
+            tx_date = datetime.strptime(str(date_str)[:10], "%m/%d/%Y").date()
+        except:
+            try:
+                # Try YYYY-MM-DD format
+                tx_date = datetime.strptime(str(date_str)[:10], "%Y-%m-%d").date()
+            except:
+                # If we can't parse it, keep it
+                filtered.append(tx)
+                continue
+        
+        # Only include if AFTER (strictly greater than) the cutoff date
+        if tx_date > cutoff_date:
+            filtered.append(tx)
+    
+    return filtered
 
 
 def add_transactions_to_db(username, transactions):
@@ -495,6 +599,16 @@ def get_receipt_for_editing(username, receipt_id):
         for item in receipt.line_items:
             # Skip RECEIPT_TOTAL and DISCOUNT items (legacy support)
             if item.item_name == "RECEIPT_TOTAL" or (item.item_name and item.item_name.startswith("DISCOUNT (")):
+                continue
+            
+            # Skip items with "Unknown" or "Unknown Item" name
+            if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
+                continue
+            
+            # Skip items with 0.00 price and 0.00 total
+            unit_price = float(item.unit_price or 0)
+            total_price = float(item.total_price or 0)
+            if unit_price == 0.0 and total_price == 0.0:
                 continue
             
             # Calculate discount from the item data: (unit_price * quantity) - total_price
@@ -1437,6 +1551,16 @@ def get_analytics():
                 
                 for item in receipt.line_items:
                     if item.is_active:
+                        # Skip items with "Unknown" or "Unknown Item" name
+                        if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
+                            continue
+                        
+                        # Skip items with 0.00 price and 0.00 total
+                        unit_price = float(item.unit_price or 0)
+                        total_price = float(item.total_price or 0)
+                        if unit_price == 0.0 and total_price == 0.0:
+                            continue
+                        
                         item_count += 1
                         total_spent += item.total_price
             
@@ -1463,6 +1587,16 @@ def get_analytics():
                     
                     for item in receipt.line_items:
                         if item.is_active:
+                            # Skip items with "Unknown" or "Unknown Item" name
+                            if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
+                                continue
+                            
+                            # Skip items with 0.00 price and 0.00 total
+                            unit_price = float(item.unit_price or 0)
+                            total_price = float(item.total_price or 0)
+                            if unit_price == 0.0 and total_price == 0.0:
+                                continue
+                            
                             monthly_data[month_key]['count'] += 1
             
             by_month = []
@@ -1488,6 +1622,16 @@ def get_analytics():
                 
                 for item in receipt.line_items:
                     if item.is_active:
+                        # Skip items with "Unknown" or "Unknown Item" name
+                        if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
+                            continue
+                        
+                        # Skip items with 0.00 price and 0.00 total
+                        unit_price = float(item.unit_price or 0)
+                        total_price = float(item.total_price or 0)
+                        if unit_price == 0.0 and total_price == 0.0:
+                            continue
+                        
                         store_data[store_name]['count'] += 1
             
             by_store = []
@@ -1521,6 +1665,16 @@ def get_analytics():
             for receipt in receipts:
                 for item in receipt.line_items:
                     if item.is_active:
+                        # Skip items with "Unknown" or "Unknown Item" name
+                        if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
+                            continue
+                        
+                        # Skip items with 0.00 price and 0.00 total
+                        unit_price = float(item.unit_price or 0)
+                        total_price = float(item.total_price or 0)
+                        if unit_price == 0.0 and total_price == 0.0:
+                            continue
+                        
                         category = item.category or 'Uncategorized'
                         category_data[category]['spent'] += item.total_price
                         category_data[category]['count'] += 1
@@ -1546,6 +1700,16 @@ def get_analytics():
             for receipt in receipts:
                 for item in receipt.line_items:
                     if item.is_active:
+                        # Skip items with "Unknown" or "Unknown Item" name
+                        if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
+                            continue
+                        
+                        # Skip items with 0.00 price and 0.00 total
+                        unit_price = float(item.unit_price or 0)
+                        total_price = float(item.total_price or 0)
+                        if unit_price == 0.0 and total_price == 0.0:
+                            continue
+                        
                         item_name = item.item_name
                         item_data[item_name]['spent'] += item.total_price
                         item_data[item_name]['count'] += item.quantity
@@ -1584,7 +1748,9 @@ def get_analytics():
             recent_receipts = sorted(receipts, key=lambda x: x.date or datetime.min, reverse=True)[:10]
             recent = []
             for receipt in recent_receipts:
-                item_count = len([i for i in receipt.line_items if i.is_active])
+                item_count = len([i for i in receipt.line_items if i.is_active and 
+                                  not (i.item_name and ("Unknown" in i.item_name or "unknown" in i.item_name.lower())) and
+                                  not (float(i.unit_price or 0) == 0.0 and float(i.total_price or 0) == 0.0)])
                 recent.append({
                     'id': receipt.id,
                     'date': receipt.date.isoformat() if receipt.date else None,
@@ -1874,8 +2040,15 @@ def import_single_file():
         dm.load_user_data(user_id)  # Clear any existing in-memory data
         result = dm.import_file(filepath, user_id)
         
-        # Get the parsed transactions and save to database
+        # Get the parsed transactions and filter by previous import date
         transactions = dm.get_transactions_by_user(user_id)
+        
+        # Get the latest import date from previously uploaded files with the same base name
+        # Example: If uploading Smiths_20260301.json, find the latest Smiths_*.json date already imported
+        cutoff_date = get_latest_import_date_for_file(user_id, actual_file)
+        if cutoff_date:
+            transactions = filter_transactions_by_date(transactions, cutoff_date)
+        
         if transactions:
             db_result = add_transactions_to_db(user_id, transactions)
         
