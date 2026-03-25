@@ -7,7 +7,8 @@ from flask import Blueprint, jsonify, session
 from functools import wraps
 
 # Create blueprint for v1 items endpoints
-items_bp = Blueprint('api_v1_items', __name__, url_prefix='/api/v1/items')
+# Note: url_prefix handled by parent v1_bp, so just use relative route paths
+items_bp = Blueprint('api_v1_items', __name__, url_prefix='/items')
 
 
 def login_required(f):

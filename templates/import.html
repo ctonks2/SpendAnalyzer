@@ -52,7 +52,9 @@
         const filesList = document.getElementById('filesList');
         filesList.innerHTML = '<p style="color: #888; text-align: center;">Loading...</p>';
         
-        fetch('/api/list_files?user_id=' + encodeURIComponent(userId))
+        fetch('/api/list_files?user_id=' + encodeURIComponent(userId), {
+            credentials: 'same-origin'  // Send session cookies with this request
+        })
         .then(r => r.json())
         .then(result => {
             if (result.files && result.files.length > 0) {
@@ -88,6 +90,7 @@
         fetch('/api/import_file', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',  // Send session cookies with this request
             body: JSON.stringify({ filename: filename })
         })
         .then(r => r.json())

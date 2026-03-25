@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """View SQLite database contents."""
 import sqlite3
-import sys
+import os
 
-DB_PATH = 'spend_data.db'
+# Get the same database path as the web app
+_PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+DB_PATH = os.path.join(_PROJECT_ROOT, 'spend_data.db')
 
 def format_row(row, col_widths):
     """Format a row with proper column widths."""

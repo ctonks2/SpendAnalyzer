@@ -27,7 +27,8 @@ def migrate_from_json(db_url="sqlite:///spend_data.db"):
     init_db(db_url)
     session = get_session(db_url)
     
-    base_dir = os.getcwd()
+    # Get the project root
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     users_dir = os.path.join(base_dir, "data", "normalized", "users")
     history_dir = os.path.join(base_dir, "data", "normalized", "usersHistory")
     reports_dir = os.path.join(base_dir, "reports")

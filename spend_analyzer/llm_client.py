@@ -6,7 +6,8 @@ import requests
 from requests.exceptions import RequestException
 
 
-CONFIG_PATH = os.path.join(os.getcwd(), "configs", "llm.yaml")
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+CONFIG_PATH = os.path.join(_PROJECT_ROOT, "configs", "llm.yaml")
 DEFAULT_MISTRAL_ENDPOINT = "https://api.mistral.ai/v1/generate"
 DEFAULT_MODEL = "mistral-7b-instruct"
 DEFAULT_MISTRAL_AGENT_CONV_ENDPOINT = "https://api.mistral.ai/v1/conversations"

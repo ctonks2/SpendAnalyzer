@@ -17,31 +17,17 @@ from spend_analyzer.data_manager import DataManager
 from spend_analyzer.llm_client import LLMClient
 from spend_analyzer.llm_menu import LLMMenu
 
-# Import database modules
-from spend_analyzer.db import Base, get_engine, get_session
+# Load environment variables first
+from dotenv import load_dotenv
+load_dotenv()
+
+# Import database modules (DB_URL is now defined in db.py)
+from spend_analyzer.db import Base, get_engine, get_session, DB_URL
 from spend_analyzer.models import User, Location, Receipt, LineItem, UserHistory, Recommendation
 from spend_analyzer.migrate import migrate_from_json
 
 # Import API blueprints
 from spend_analyzer.api import api_bp
-
-# Load environment variables
-from dotenv import load_dotenv
-load_dotenv()
-
-
-# ====== DATABASE CONFIGURATION ======
-
-# Determine database based on environment
-if os.environ.get('FLASK_ENV') == 'production':
-    # Use PostgreSQL in production
-    DB_URL = os.environ.get('DATABASE_URL')
-    if DB_URL and DB_URL.startswith('postgres://'):
-        # Fix PostgreSQL URL scheme for SQLAlchemy 1.4+
-        DB_URL = DB_URL.replace('postgres://', 'postgresql://', 1)
-else:
-    # Use SQLite in development
-    DB_URL = "sqlite:///spend_data.db"
 
 
 # === Database Helper Functions ===
@@ -1118,20 +1104,6 @@ def add_receipt_page():
                 'orderno': orderno
             }
             transactions.append(tx)
-            
-            # Add discount line item if there's a discount
-            if item_discount > 0:
-                transactions.append({
-                    'user_id': user_id,
-                    'item_name': f"DISCOUNT ({item['name']})",
-                    'unit_price': -item_discount,
-                    'quantity': 1,
-                    'total_price': -item_discount,
-                    'store': store_number,
-                    'source': store_name,
-                    'date': date_str,
-                    'orderno': orderno
-                })
         
         # Add receipt total (for reference, not counted in stats)
         transactions.append({
@@ -1348,6 +1320,85 @@ def update_receipt(receipt_id):
         return redirect(url_for('edit_receipt_page', receipt_id=receipt_id,
                                message=f'Error: {str(e)}', type='error'))
 
+
+# === Settings Page ===
+@app.route('/settings')
+@login_required
+def settings_page():
+    """Route for the settings page"""
+    user_id = session.get('username', '')
+    
+    # Get user's current theme preference
+    theme = 'default'
+    if user_id:
+        db_session = get_session(DB_URL)
+        try:
+            user = db_session.query(User).filter_by(username=user_id).first()
+            if user:
+                theme = user.theme or 'default'
+        except Exception:
+            pass
+        finally:
+            db_session.close()
+    
+    return render_template('settings.html', user_id=user_id, theme=theme)
+
+
+# === API Endpoints ===
+@app.route('/api/update_theme', methods=['POST'])
+@login_required
+def update_theme():
+    """API endpoint to update user's theme preference"""
+    user_id = session.get('username', '')
+    data = request.get_json() or {}
+    theme = data.get('theme', 'default')
+    
+    # Validate theme
+    valid_themes = ['default', 'cherry-blossoms', 'beach-day', 'falling-leaves', 'winter-forest']
+    if theme not in valid_themes:
+        theme = 'default'
+    
+    # Update in database
+    db_session = get_session(DB_URL)
+    try:
+        user = db_session.query(User).filter_by(username=user_id).first()
+        if user:
+            user.theme = theme
+            db_session.commit()
+            return jsonify({"success": True, "theme": theme})
+    except Exception as e:
+        db_session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        db_session.close()
+    
+    return jsonify({"success": False, "error": "User not found"}), 404
+
+
+@app.route('/api/delete_data', methods=['POST'])
+@login_required
+def delete_user_data():
+    """API endpoint to delete all user data"""
+    user_id = session.get('username', '')
+    
+    db_session = get_session(DB_URL)
+    try:
+        # Get user to delete their data
+        user = db_session.query(User).filter_by(username=user_id).first()
+        if user:
+            # Delete all receipts and related records (cascade should handle this)
+            db_session.query(Receipt).filter_by(user_id=user.id).delete()
+            db_session.query(UserHistory).filter_by(user_id=user.id).delete()
+            db_session.query(Recommendation).filter_by(user_id=user.id).delete()
+            db_session.commit()
+            return jsonify({"success": True})
+    except Exception as e:
+        db_session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        db_session.close()
+    
+    return jsonify({"success": False, "error": "User not found"}), 404
 
 
 if __name__ == '__main__':

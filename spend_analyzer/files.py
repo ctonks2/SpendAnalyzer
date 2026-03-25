@@ -261,7 +261,9 @@ class FilesManager:
 
     def select_one_from_raw(self, user_id):
         self._print_upload_history(user_id)
-        raw_dir = os.path.join(os.getcwd(), "data", "raw")
+        # Get the project root
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        raw_dir = os.path.join(project_root, "data", "raw")
         if not os.path.exists(raw_dir):
             print("\nThe data/raw folder doesn't exist yet.")
             print("Place your receipt files there to import them.")
@@ -306,7 +308,9 @@ class FilesManager:
     def select_all_from_raw(self, user_id):
         self._print_upload_history(user_id)
         existing = set(self.dm.get_uploaded_filenames(user_id))
-        raw_dir = os.path.join(os.getcwd(), "data", "raw")
+        # Get the project root
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        raw_dir = os.path.join(project_root, "data", "raw")
         if not os.path.exists(raw_dir):
             print("\nThe data/raw folder doesn't exist yet.")
             print("Place your receipt files there to import them.")

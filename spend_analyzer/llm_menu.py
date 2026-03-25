@@ -9,7 +9,9 @@ class LLMMenu:
         self.dm = dm
 
     def _rec_file(self, user_id):
-        rec_dir = os.path.join(os.getcwd(), "reports")
+        # Get the project root
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        rec_dir = os.path.join(project_root, "reports")
         os.makedirs(rec_dir, exist_ok=True)
         return os.path.join(rec_dir, f"{user_id}_Recommendations.json")
 

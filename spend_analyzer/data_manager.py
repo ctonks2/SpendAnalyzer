@@ -24,9 +24,15 @@ DEFAULT_MAPPING = {
 }
 
 
+def _get_project_root():
+    """Get the project root directory"""
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+
 def _load_mappings():
     cfg = {}
-    cfg_path = os.path.join(os.getcwd(), "configs", "store_mappings.yaml")
+    project_root = _get_project_root()
+    cfg_path = os.path.join(project_root, "configs", "store_mappings.yaml")
     if os.path.exists(cfg_path):
         try:
             with open(cfg_path, "r", encoding="utf-8") as fh:
@@ -50,6 +56,68 @@ def _infer_source_from_filename(path):
         return path
 
 
+def _extract_date_from_filename(path):
+    """Extract date from filename in YYYYMMDD format.
+    
+    Returns the date as an ISO string (YYYY-MM-DD) or None if no date found.
+    Example: 'Smiths_20250423.json' -> '2025-04-23'
+    """
+    try:
+        base = os.path.basename(path)
+        name = os.path.splitext(base)[0]
+        # Look for YYYYMMDD pattern (8 consecutive digits)
+        match = re.search(r'(\d{8})', name)
+        if match:
+            date_str = match.group(1)
+            # Parse as YYYYMMDD
+            year = date_str[0:4]
+            month = date_str[4:6]
+            day = date_str[6:8]
+            return f"{year}-{month}-{day}"
+    except Exception:
+        pass
+    return None
+
+
+def _get_cutoff_date_for_file(file_path, raw_dir):
+    """Get the cutoff date for importing a specific file.
+    
+    If there are other files from the same store with earlier dates,
+    returns the earliest date from those files. Otherwise returns None.
+    
+    This prevents re-importing old data when importing newer receipt files.
+    """
+    try:
+        # Extract store name and current file's date
+        source = _infer_source_from_filename(file_path)
+        file_date = _extract_date_from_filename(file_path)
+        
+        if not source or not file_date:
+            return None
+        
+        # Find all other files from the same store with dates
+        all_files = []
+        if os.path.exists(raw_dir):
+            for fname in os.listdir(raw_dir):
+                fpath = os.path.join(raw_dir, fname)
+                if os.path.isfile(fpath) and fname != os.path.basename(file_path):
+                    other_source = _infer_source_from_filename(fpath)
+                    other_date = _extract_date_from_filename(fpath)
+                    if other_source == source and other_date:
+                        all_files.append((other_date, fname))
+        
+        # Find the maximum date from files older than the current file
+        cutoff_dates = [d for d, _ in all_files if d < file_date]
+        if cutoff_dates:
+            # Return the maximum of the older dates
+            return max(cutoff_dates)
+    
+    except Exception:
+        pass
+    
+    return None
+
+
 class DataManager:
     def __init__(self):
         self.transactions = []  # list of dicts
@@ -69,12 +137,14 @@ class DataManager:
                 self.transaction_hashes.add(h)
 
     def _user_data_path(self, user_id):
-        base = os.path.join(os.getcwd(), "data", "normalized", "users")
+        project_root = _get_project_root()
+        base = os.path.join(project_root, "data", "normalized", "users")
         os.makedirs(base, exist_ok=True)
         return os.path.join(base, f"{user_id}.json")
 
     def _user_uploads_path(self, user_id):
-        base = os.path.join(os.getcwd(), "data", "normalized", "usersHistory")
+        project_root = _get_project_root()
+        base = os.path.join(project_root, "data", "normalized", "usersHistory")
         os.makedirs(base, exist_ok=True)
         return os.path.join(base, f"{user_id}_uploads.json")
 
@@ -193,15 +263,20 @@ class DataManager:
         """
         if not os.path.exists(path):
             raise FileNotFoundError(path)
+        
+        # Determine the raw directory and get cutoff date
+        raw_dir = os.path.dirname(path)
+        cutoff_date = _get_cutoff_date_for_file(path, raw_dir)
+        
         _, ext = os.path.splitext(path)
         if ext.lower() in (".csv",):
-            return self._import_csv(path, user_id, duplicate_handling)
+            return self._import_csv(path, user_id, duplicate_handling, cutoff_date)
         elif ext.lower() in (".json",):
-            return self._import_json(path, user_id, duplicate_handling)
+            return self._import_json(path, user_id, duplicate_handling, cutoff_date)
         elif ext.lower() in (".xlsx", ".xls"):
-            return self._import_xlsx(path, user_id, duplicate_handling)
+            return self._import_xlsx(path, user_id, duplicate_handling, cutoff_date)
         elif ext.lower() in (".pdf",):
-            return self._import_pdf(path, user_id, duplicate_handling)
+            return self._import_pdf(path, user_id, duplicate_handling, cutoff_date)
         else:
             raise ValueError("Unsupported file type")
 
@@ -227,7 +302,7 @@ class DataManager:
             self.transaction_hashes.add(h)
         return True, replaced
 
-    def _import_csv(self, path, user_id, duplicate_handling="skip"):
+    def _import_csv(self, path, user_id, duplicate_handling="skip", cutoff_date=None):
         imported = 0
         skipped = 0
         replaced = 0
@@ -238,6 +313,13 @@ class DataManager:
                 # annotate source (first token of filename) so downstream logic can use it
                 row["source"] = source
                 tx = self._normalize_row(row, user_id)
+                
+                # Check cutoff date: if specified, only import items on or after the cutoff date
+                if cutoff_date and tx.get("date"):
+                    if tx.get("date") < cutoff_date:
+                        skipped += 1
+                        continue
+                
                 added, rep = self._add_transaction(tx, duplicate_handling=duplicate_handling)
                 if added:
                     imported += 1
@@ -272,7 +354,7 @@ class DataManager:
         walk(data)
         return found
 
-    def _import_json(self, path, user_id, duplicate_handling="skip"):
+    def _import_json(self, path, user_id, duplicate_handling="skip", cutoff_date=None):
         """Import JSON with some tolerance for common formatting issues (trailing commas, comments)."""
         imported = 0
         skipped = 0
@@ -331,6 +413,13 @@ class DataManager:
             if isinstance(row, dict):
                 row["source"] = source
             tx = self._normalize_row(row, user_id)
+            
+            # Check cutoff date: if specified, only import items on or after the cutoff date
+            if cutoff_date and tx.get("date"):
+                if tx.get("date") < cutoff_date:
+                    skipped += 1
+                    continue
+            
             added, rep = self._add_transaction(tx, duplicate_handling=duplicate_handling)
             if added:
                 imported += 1
@@ -340,7 +429,7 @@ class DataManager:
                 replaced += 1
         return {"imported": imported, "skipped": skipped, "replaced": replaced}
 
-    def _import_xlsx(self, path, user_id, duplicate_handling="skip"):
+    def _import_xlsx(self, path, user_id, duplicate_handling="skip", cutoff_date=None):
         """Import an XLSX where each row is an item. Rows with an isTotalline flag mark receipt totals."""
         # Read the default sheet; if expected Macey columns aren't present, try sheet index 1 (sheet2)
         try:
@@ -424,6 +513,13 @@ class DataManager:
                 except Exception:
                     # if conversion fails, skip this receipt total
                     continue
+                
+                # Check cutoff date: if specified, only import items on or after the cutoff date
+                if cutoff_date and tx.get("date"):
+                    if tx.get("date") < cutoff_date:
+                        skipped += 1
+                        continue
+                
                 added, rep = self._add_transaction(tx, duplicate_handling=duplicate_handling)
                 if added:
                     imported += 1
@@ -433,6 +529,13 @@ class DataManager:
                     replaced += 1
             else:
                 tx = self._normalize_row(rowdict, user_id)
+                
+                # Check cutoff date: if specified, only import items on or after the cutoff date
+                if cutoff_date and tx.get("date"):
+                    if tx.get("date") < cutoff_date:
+                        skipped += 1
+                        continue
+                
                 added, rep = self._add_transaction(tx, duplicate_handling=duplicate_handling)
                 if added:
                     imported += 1
@@ -442,7 +545,7 @@ class DataManager:
                     replaced += 1
         return {"imported": imported, "skipped": skipped, "replaced": replaced}
 
-    def _import_pdf(self, path, user_id, duplicate_handling="skip"):
+    def _import_pdf(self, path, user_id, duplicate_handling="skip", cutoff_date=None):
         """Attempt to extract text from a PDF and parse a JSON blob if present."""
         imported = 0
         skipped = 0
@@ -483,6 +586,13 @@ class DataManager:
             if isinstance(row, dict):
                 row["source"] = source
             tx = self._normalize_row(row, user_id)
+            
+            # Check cutoff date: if specified, only import items on or after the cutoff date
+            if cutoff_date and tx.get("date"):
+                if tx.get("date") < cutoff_date:
+                    skipped += 1
+                    continue
+            
             h = self._compute_transaction_hash(tx)
             if h in self.transaction_hashes:
                 if duplicate_handling == "skip":
@@ -499,7 +609,8 @@ class DataManager:
 
     def import_all_from_raw(self, user_id="user", duplicate_handling="skip"):
         """Import all files found in data/raw and return summary dict"""
-        raw_dir = os.path.join(os.getcwd(), "data", "raw")
+        project_root = _get_project_root()
+        raw_dir = os.path.join(project_root, "data", "raw")
         results = {}
         if not os.path.exists(raw_dir):
             return results
@@ -562,15 +673,29 @@ class DataManager:
             try:
                 # Handle various date formats and extract date-only
                 d_str = str(d).strip()
-                # Try ISO format first (handles datetime and date)
+                # Remove time portion if present (space followed by time)
+                if ' ' in d_str:
+                    d_str = d_str.split(' ')[0]
+                
+                # Now parse the date part
+                # Try ISO format first (YYYY-MM-DD)
                 if 'T' in d_str:
-                    # DateTime with T separator - take date part
+                    # DateTime with T separator - already handled above
                     normalized["date"] = d_str.split('T')[0]
-                elif ' ' in d_str and ':' in d_str:
-                    # DateTime with space separator - take date part
-                    normalized["date"] = d_str.split(' ')[0]
+                elif '-' in d_str and re.match(r'\d{4}-\d{2}-\d{2}', d_str):
+                    # ISO format YYYY-MM-DD
+                    normalized["date"] = d_str[:10]
+                elif '/' in d_str:
+                    # Try MM/DD/YYYY or M/D/YYYY format
+                    try:
+                        dt = datetime.strptime(d_str, "%m/%d/%Y")
+                        normalized["date"] = dt.date().isoformat()
+                    except ValueError:
+                        # Try other slash formats
+                        dt = datetime.fromisoformat(d_str)
+                        normalized["date"] = dt.date().isoformat()
                 else:
-                    # Try parsing as ISO date
+                    # Try fromisoformat as fallback
                     dt = datetime.fromisoformat(d_str)
                     normalized["date"] = dt.date().isoformat()
             except Exception:

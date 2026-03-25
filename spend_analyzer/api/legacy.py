@@ -1,11 +1,13 @@
 """
 Legacy API Endpoints (unversioned /api/)
 These endpoints are maintained for backward compatibility but v1 is recommended for new code.
+
+NOTE: Many endpoints have been disabled as they required non-existent database functions.
+Only /list_files and /import_file are currently implemented.
 """
 
 from flask import Blueprint, jsonify, session, request
 from functools import wraps
-import json
 import os
 
 legacy_api_bp = Blueprint('api_legacy', __name__, url_prefix='/api')
@@ -21,211 +23,41 @@ def login_required(f):
     return decorated_function
 
 
-# ====== RECEIPT MANAGEMENT ======
-
-@legacy_api_bp.route('/receipt/<int:receipt_id>/delete', methods=['POST'])
-@login_required
-def delete_receipt(receipt_id):
-    """Delete a receipt (soft or hard delete)"""
-    from spend_analyzer.db import (
-        get_session, DB_URL, soft_delete_receipt, hard_delete_receipt
-    )
-    
-    user_id = session.get('username', '')
-    delete_type = request.json.get('delete_type', 'soft')  # 'soft' or 'hard'
-    
-    try:
-        if delete_type == 'hard':
-            success, message = hard_delete_receipt(user_id, receipt_id)
-        else:
-            success, message = soft_delete_receipt(user_id, receipt_id)
-        
-        if success:
-            return jsonify({'success': True, 'message': message})
-        else:
-            return jsonify({'success': False, 'message': message}), 400
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-@legacy_api_bp.route('/lineitem/<int:line_item_id>/delete', methods=['POST'])
-@login_required
-def delete_line_item(line_item_id):
-    """Delete a line item (soft or hard delete)"""
-    from spend_analyzer.db import soft_delete_line_item, hard_delete_line_item
-    
-    user_id = session.get('username', '')
-    delete_type = request.json.get('delete_type', 'soft')  # 'soft' or 'hard'
-    
-    try:
-        if delete_type == 'hard':
-            success, message = hard_delete_line_item(user_id, line_item_id)
-        else:
-            success, message = soft_delete_line_item(user_id, line_item_id)
-        
-        if success:
-            return jsonify({'success': True, 'message': message})
-        else:
-            return jsonify({'success': False, 'message': message}), 400
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-@legacy_api_bp.route('/add_receipt', methods=['POST'])
-@login_required
-def add_receipt():
-    """Add a new receipt via API"""
-    from spend_analyzer.db import add_transactions_to_db
-    
-    try:
-        data = request.json
-        user_id = session.get('username')
-        store_number = data.get('store_number')
-        store_name = data.get('store_name', 'unknown')
-        date_str = data.get('date')
-        items = data.get('items', [])
-        
-        if not items:
-            return jsonify({'success': False, 'error': 'Missing required fields'})
-        
-        orderno = f"{store_number}.{date_str}"
-        
-        transactions = []
-        final_total = 0
-        for item in items:
-            item_subtotal = float(item.get('price', 0)) * int(item.get('qty', 1))
-            item_discount = float(item.get('discount', 0) or 0)
-            item_total = item_subtotal - item_discount
-            final_total += item_total
-            
-            tx = {
-                'user_id': user_id,
-                'item_name': item.get('name'),
-                'unit_price': float(item.get('price', 0)),
-                'quantity': int(item.get('qty', 1)),
-                'total_price': item_total,
-                'store': store_number,
-                'source': store_name,
-                'date': date_str,
-                'orderno': orderno
-            }
-            transactions.append(tx)
-        
-        # Add receipt total
-        transactions.append({
-            'user_id': user_id,
-            'item_name': 'RECEIPT_TOTAL',
-            'unit_price': 0,
-            'quantity': 1,
-            'total_price': final_total,
-            'store': store_number,
-            'source': store_name,
-            'date': date_str,
-            'orderno': orderno
-        })
-        
-        result = add_transactions_to_db(user_id, transactions)
-        return jsonify({'success': True, 'imported': result.get('imported', 0)})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-# ====== USER SETTINGS ======
-
-@legacy_api_bp.route('/update_theme', methods=['POST'])
-@login_required
-def update_theme():
-    """Update user's theme preference"""
-    from spend_analyzer.db import get_session, DB_URL
-    from spend_analyzer.models import User
-    
-    try:
-        data = request.json
-        theme = data.get('theme', 'default')
-        
-        db_session = get_session(DB_URL)
-        try:
-            user = db_session.query(User).filter_by(id=session.get('user_id')).first()
-            if user:
-                user.theme = theme
-                db_session.commit()
-                session['theme'] = theme
-                return jsonify({'success': True})
-            return jsonify({'success': False, 'error': 'User not found'})
-        finally:
-            db_session.close()
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-# ====== RECOMMENDATIONS ======
-
-@legacy_api_bp.route('/save_recommendation', methods=['POST'])
-@login_required
-def save_recommendation():
-    """Save a recommendation"""
-    from spend_analyzer.db import save_recommendation_to_db
-    
-    try:
-        data = request.json
-        user_id = session.get('username')
-        question = data.get('question')
-        response = data.get('response')
-        category = data.get('category', 'Other')
-        
-        success = save_recommendation_to_db(user_id, question, response, category)
-        return jsonify({'success': success})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@legacy_api_bp.route('/delete_recommendation', methods=['POST'])
-@login_required
-def delete_recommendation():
-    """Delete a recommendation"""
-    from spend_analyzer.db import delete_recommendation_from_db
-    
-    try:
-        data = request.json
-        user_id = session.get('username')
-        index = data.get('index')
-        
-        success = delete_recommendation_from_db(user_id, index)
-        return jsonify({'success': success})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
+# ====== FILE MANAGEMENT ======
 
 # ====== FILE MANAGEMENT ======
+# Note: Other endpoints (receipt, lineitem, recommendations) have been disabled
+# as they required database functions that don't exist in the current db module.
+# They will be reimplemented when the database layer is refactored.
+
 
 @legacy_api_bp.route('/list_files', methods=['GET'])
 @login_required
 def list_files():
-    """List available files in data/raw"""
-    from spend_analyzer.db import (
-        get_uploaded_files_from_db, normalize_filename
-    )
-    
+    """List all available files in data/raw, exclude ones already uploaded by user"""
     try:
         user_id = session.get('username', '')
-        raw_dir = os.path.join(os.getcwd(), "data", "raw")
+        # Get the project root (2 levels up from this module: spend_analyzer/api/legacy.py)
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        raw_dir = os.path.join(project_root, "data", "raw")
         
         if not os.path.exists(raw_dir):
             return jsonify({'files': [], 'error': 'data/raw folder not found'})
         
-        existing = set()
-        if user_id:
-            existing = set(get_uploaded_files_from_db(user_id))
+        # Get list of files already uploaded by this user
+        from spend_analyzer.data_manager import DataManager
+        dm = DataManager()
+        dm.load_user_data(user_id)
+        already_uploaded = set(dm.get_uploaded_filenames(user_id))
         
-        existing_normalized = {normalize_filename(f) for f in existing}
-        
+        # List ALL files in data/raw
         files = []
         for fname in sorted(os.listdir(raw_dir)):
             path = os.path.join(raw_dir, fname)
             if os.path.isfile(path):
                 files.append({
                     'name': fname,
-                    'imported': fname in existing or normalize_filename(fname) in existing_normalized
+                    'imported': fname in already_uploaded  # Mark if already imported by this user
                 })
         
         return jsonify({'files': files})
@@ -236,13 +68,10 @@ def list_files():
 @legacy_api_bp.route('/import_file', methods=['POST'])
 @login_required
 def import_single_file():
-    """Import a single file from data/raw"""
-    from spend_analyzer.db import (
-        normalize_filename, get_uploaded_files_from_db,
-        add_uploaded_file_to_db, add_transactions_to_db,
-        get_latest_import_date_for_file, filter_transactions_by_date
-    )
+    """Import a single file from data/raw and save to database"""
     from spend_analyzer.data_manager import DataManager
+    from spend_analyzer.db import get_session, DB_URL
+    from spend_analyzer.models import User, Location, Receipt, LineItem
     
     try:
         data = request.json
@@ -252,13 +81,14 @@ def import_single_file():
         if not filename:
             return jsonify({'success': False, 'error': 'Missing filename'})
         
-        raw_dir = os.path.join(os.getcwd(), "data", "raw")
+        # Get the project root (2 levels up: spend_analyzer/api/legacy.py -> project root)
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        raw_dir = os.path.join(project_root, "data", "raw")
         
         # Find the actual file
         actual_file = None
-        norm_filename = normalize_filename(filename)
         for f in os.listdir(raw_dir):
-            if f == filename or normalize_filename(f) == norm_filename:
+            if f == filename:
                 actual_file = f
                 break
         
@@ -267,42 +97,128 @@ def import_single_file():
         
         filepath = os.path.join(raw_dir, actual_file)
         
+        # Import file using DataManager
+        dm = DataManager()
+        dm.load_user_data(user_id)
+        
         # Check if already imported
-        existing = set(get_uploaded_files_from_db(user_id))
+        existing = set(dm.get_uploaded_filenames(user_id))
         if actual_file in existing:
             return jsonify({'success': False, 'error': 'File already imported'})
         
-        # Import file
-        dm = DataManager()
-        dm.load_user_data(user_id)
+        # Import the file (saves to JSON)
         result = dm.import_file(filepath, user_id)
+        imported_count = result.get('imported', 0)
         
-        transactions = dm.get_transactions_by_user(user_id)
+        dm.save_user_data(user_id)
+        dm.add_uploaded_filename(user_id, actual_file)
         
-        # Filter by previous import date
-        cutoff_date = get_latest_import_date_for_file(user_id, actual_file)
-        if cutoff_date:
-            transactions = filter_transactions_by_date(transactions, cutoff_date)
-        
-        if transactions:
-            db_result = add_transactions_to_db(user_id, transactions)
-        
-        add_uploaded_file_to_db(user_id, actual_file)
-        
-        return jsonify({'success': True, 'imported': result.get('imported', 0)})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@legacy_api_bp.route('/delete_data', methods=['POST'])
-@login_required
-def delete_data():
-    """Delete all user data"""
-    from spend_analyzer.db import delete_user_data_from_db
-    
-    try:
-        user_id = session.get('username')
-        delete_user_data_from_db(user_id, delete_upload_history=True)
-        return jsonify({'success': True})
+        # Now save to database
+        db_session = get_session(DB_URL)
+        try:
+            # Get or create user in database
+            db_user = db_session.query(User).filter_by(username=user_id).first()
+            if not db_user:
+                db_user = User(username=user_id)
+                db_session.add(db_user)
+                db_session.flush()
+            
+            # Load the imported transactions from JSON
+            dm.load_user_data(user_id)
+            transactions = dm.transactions
+            
+            # Save each transaction to database
+            saved_count = 0
+            for tx in transactions:
+                if tx.get('user_id') != user_id:
+                    continue
+                
+                # Skip receipt total markers
+                if tx.get('item_name') == 'RECEIPT_TOTAL':
+                    continue
+                
+                # Skip invalid items (no item_name)
+                item_name = tx.get('item_name', '').strip() if tx.get('item_name') else ''
+                if not item_name:
+                    continue
+                
+                # Skip items with no valid total price
+                total_price = float(tx.get('total_price', 0) or tx.get('total_after', 0) or 0)
+                if total_price == 0 and float(tx.get('unit_price', 0) or 0) == 0:
+                    continue
+                
+                # Get or create location
+                store_number = tx.get('store', 'Unknown')
+                store_name = tx.get('source', 'Unknown Store')
+                location = db_session.query(Location).filter_by(
+                    store_number=store_number
+                ).first()
+                if not location:
+                    location = Location(store_number=store_number, store_name=store_name)
+                    db_session.add(location)
+                    db_session.flush()
+                
+                # Create receipt if needed
+                orderno = tx.get('orderno', f"{store_number}.{tx.get('date')}")
+                
+                # Parse date to ensure it's just a date, not datetime
+                date_str = tx.get('date', '2026-01-01')
+                from datetime import datetime as dt
+                if isinstance(date_str, str):
+                    try:
+                        purchase_date = dt.strptime(date_str, '%Y-%m-%d').date()
+                    except:
+                        from datetime import date
+                        purchase_date = date.today()
+                else:
+                    from datetime import date
+                    purchase_date = date.today()
+                
+                receipt = db_session.query(Receipt).filter_by(
+                    user_id=db_user.id,
+                    location_id=location.id,
+                    order_number=orderno
+                ).first()
+                if not receipt:
+                    receipt = Receipt(
+                        user_id=db_user.id,
+                        location_id=location.id,
+                        order_number=orderno,
+                        date=purchase_date,
+                        is_active=True
+                    )
+                    db_session.add(receipt)
+                    db_session.flush()
+                
+                # Create line item (note: no discount_amount field, total_price is final)
+                line_item = LineItem(
+                    receipt_id=receipt.id,
+                    item_name=item_name,  # Use the validated item_name
+                    unit_price=float(tx.get('unit_price', 0) or 0),
+                    quantity=float(tx.get('quantity', 1) or 1),
+                    total_price=total_price,  # Use the validated total_price
+                    category=tx.get('category'),
+                    product_upc=tx.get('upc'),
+                    is_active=True
+                )
+                db_session.add(line_item)
+                saved_count += 1
+            
+            # Commit all changes
+            db_session.commit()
+            
+            return jsonify({
+                'success': True, 
+                'imported': imported_count,
+                'saved_to_db': saved_count
+            })
+        except Exception as db_error:
+            db_session.rollback()
+            return jsonify({
+                'success': False, 
+                'error': f'Database error: {str(db_error)}'
+            })
+        finally:
+            db_session.close()
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
