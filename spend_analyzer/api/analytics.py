@@ -79,7 +79,9 @@ def get_analytics():
             for receipt in receipts:
                 if receipt.date:
                     all_dates.append(receipt.date)
-                    transaction_dates[receipt.date] += receipt.total_amount
+                    # Calculate actual receipt total from line items (don't rely on stored total_amount)
+                    receipt_total = sum(item.total_price for item in receipt.line_items if item.is_active)
+                    transaction_dates[receipt.date] += receipt_total
                 
                 store_names.add(receipt.location.store_name)
                 
@@ -117,7 +119,9 @@ def get_analytics():
                 if receipt.date:
                     month_key = receipt.date.strftime('%Y-%m')
                     monthly_data[month_key]['receipts'] += 1
-                    monthly_data[month_key]['spent'] += receipt.total_amount
+                    # Calculate actual receipt total from line items
+                    receipt_total = sum(item.total_price for item in receipt.line_items if item.is_active)
+                    monthly_data[month_key]['spent'] += receipt_total
                     
                     for item in receipt.line_items:
                         if item.is_active:
@@ -146,7 +150,9 @@ def get_analytics():
             for receipt in receipts:
                 store_name = receipt.location.store_name
                 store_data[store_name]['receipts'] += 1
-                store_data[store_name]['spent'] += receipt.total_amount
+                # Calculate actual receipt total from line items
+                receipt_total = sum(item.total_price for item in receipt.line_items if item.is_active)
+                store_data[store_name]['spent'] += receipt_total
                 if receipt.date:
                     store_data[store_name]['dates'].append(receipt.date)
                 
@@ -250,7 +256,9 @@ def get_analytics():
             for receipt in receipts:
                 if receipt.date:
                     dow = receipt.date.weekday()
-                    weekly_data[dow]['spent'] += receipt.total_amount
+                    # Calculate actual receipt total from line items
+                    receipt_total = sum(item.total_price for item in receipt.line_items if item.is_active)
+                    weekly_data[dow]['spent'] += receipt_total
                     weekly_data[dow]['count'] += 1
             
             weekly_pattern = {}
@@ -268,11 +276,13 @@ def get_analytics():
                 item_count = len([i for i in receipt.line_items if i.is_active and 
                                   not (i.item_name and ("Unknown" in i.item_name or "unknown" in i.item_name.lower())) and
                                   not (float(i.unit_price or 0) == 0.0 and float(i.total_price or 0) == 0.0)])
+                # Calculate actual receipt total from line items
+                receipt_total = sum(item.total_price for item in receipt.line_items if item.is_active)
                 recent.append({
                     'id': receipt.id,
                     'date': receipt.date.isoformat() if receipt.date else None,
                     'store': receipt.location.store_name,
-                    'spent': round(float(receipt.total_amount), 2),
+                    'spent': round(float(receipt_total), 2),
                     'itemCount': item_count
                 })
             

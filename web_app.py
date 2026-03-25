@@ -23,7 +23,7 @@ load_dotenv()
 
 # Import database modules (DB_URL is now defined in db.py)
 from spend_analyzer.db import Base, get_engine, get_session, DB_URL
-from spend_analyzer.models import User, Location, Receipt, LineItem, UserHistory, Recommendation
+from spend_analyzer.models import User, Location, Receipt, LineItem, Recommendation
 from spend_analyzer.migrate import migrate_from_json
 
 # Import API blueprints
@@ -310,43 +310,7 @@ def add_transactions_to_db(username, transactions):
         db_session.close()
 
 
-def get_uploaded_files_from_db(username):
-    """Get list of uploaded filenames for a user from database"""
-    db_session = get_session(DB_URL)
-    try:
-        user = db_session.query(User).filter_by(username=username).first()
-        if not user:
-            return []
-        return [h.filename for h in user.upload_history]
-    finally:
-        db_session.close()
 
-
-def add_uploaded_file_to_db(username, filename):
-    """Record an uploaded filename for a user in database"""
-    db_session = get_session(DB_URL)
-    try:
-        user = db_session.query(User).filter_by(username=username).first()
-        if not user:
-            return False
-        
-        # Check if already exists
-        exists = db_session.query(UserHistory).filter_by(
-            user_id=user.id,
-            filename=filename
-        ).first()
-        
-        if not exists:
-            history = UserHistory(user_id=user.id, filename=filename)
-            db_session.add(history)
-            db_session.commit()
-        
-        return True
-    except:
-        db_session.rollback()
-        return False
-    finally:
-        db_session.close()
 
 
 def get_recommendations_from_db(username):
@@ -485,7 +449,11 @@ def hard_delete_receipt(username, receipt_id):
         if not receipt:
             return False, "Receipt not found"
         
-        # Delete the receipt (cascade will delete line items)
+        # Explicitly delete all line items first
+        for item in receipt.line_items:
+            db_session.delete(item)
+        
+        # Then delete the receipt
         db_session.delete(receipt)
         db_session.commit()
         return True, "Receipt permanently deleted"
@@ -1379,6 +1347,7 @@ def update_theme():
 @login_required
 def delete_user_data():
     """API endpoint to delete all user data"""
+    import os
     user_id = session.get('username', '')
     
     db_session = get_session(DB_URL)
@@ -1386,11 +1355,26 @@ def delete_user_data():
         # Get user to delete their data
         user = db_session.query(User).filter_by(username=user_id).first()
         if user:
-            # Delete all receipts and related records (cascade should handle this)
+            # Get all receipts for this user
+            receipts = db_session.query(Receipt).filter_by(user_id=user.id).all()
+            
+            # Explicitly delete all line items first
+            for receipt in receipts:
+                for item in receipt.line_items:
+                    db_session.delete(item)
+            
+            # Then delete all receipts
             db_session.query(Receipt).filter_by(user_id=user.id).delete()
-            db_session.query(UserHistory).filter_by(user_id=user.id).delete()
+            
+            # Delete recommendations
             db_session.query(Recommendation).filter_by(user_id=user.id).delete()
             db_session.commit()
+            
+            # Delete upload history JSON files
+            from spend_analyzer.data_manager import DataManager
+            dm = DataManager()
+            dm.delete_user_data(user_id, delete_upload_history=True)
+            
             return jsonify({"success": True})
     except Exception as e:
         db_session.rollback()

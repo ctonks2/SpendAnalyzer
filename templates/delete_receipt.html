@@ -92,7 +92,7 @@ async function confirmDelete() {
     }
     
     try {
-        const response = await fetch(`/api/receipt/${receiptId}/delete`, {
+        const response = await fetch(`/api/v1/receipts/${receiptId}/delete`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

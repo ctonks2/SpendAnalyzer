@@ -17,7 +17,6 @@ class User(Base):
 
     # Relationships
     receipts = relationship("Receipt", back_populates="user", cascade="all, delete-orphan")
-    upload_history = relationship("UserHistory", back_populates="user", cascade="all, delete-orphan")
     recommendations = relationship("Recommendation", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password):
@@ -88,21 +87,6 @@ class LineItem(Base):
 
     def __repr__(self):
         return f"<LineItem {self.item_name} ${self.total_price}>"
-
-
-class UserHistory(Base):
-    """Tracks files already uploaded by users"""
-    __tablename__ = "user_history"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    filename = Column(String(255), nullable=False)
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    user = relationship("User", back_populates="upload_history")
-
-    def __repr__(self):
-        return f"<UserHistory {self.filename}>"
 
 
 class Recommendation(Base):

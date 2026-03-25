@@ -3,7 +3,7 @@ import os
 import json
 from datetime import datetime
 from .db import get_engine, get_session, Base, reset_db
-from .models import User, Location, Receipt, LineItem, UserHistory, Recommendation
+from .models import User, Location, Receipt, LineItem, Recommendation
 
 
 def init_db(db_url="sqlite:///spend_data.db"):
@@ -38,7 +38,6 @@ def migrate_from_json(db_url="sqlite:///spend_data.db"):
         "locations": 0,
         "receipts": 0,
         "line_items": 0,
-        "upload_history": 0,
         "recommendations": 0
     }
     
@@ -186,30 +185,8 @@ def migrate_from_json(db_url="sqlite:///spend_data.db"):
                     session.add(line_item)
                     counts["line_items"] += 1
             
-            # Process upload history
-            history_file = os.path.join(history_dir, f"{username}_uploads.json")
-            if os.path.exists(history_file):
-                try:
-                    with open(history_file, "r", encoding="utf-8") as f:
-                        uploads = json.load(f)
-                    
-                    if isinstance(uploads, list):
-                        for filename in uploads:
-                            # Check if already exists
-                            exists = session.query(UserHistory).filter_by(
-                                user_id=user.id,
-                                filename=filename
-                            ).first()
-                            
-                            if not exists:
-                                history = UserHistory(
-                                    user_id=user.id,
-                                    filename=filename
-                                )
-                                session.add(history)
-                                counts["upload_history"] += 1
-                except Exception as e:
-                    print(f"  Error reading upload history: {e}")
+            # Upload history is now tracked in JSON files only
+            # Skip database saving since UserHistory table was removed
             
             # Process recommendations
             rec_file = os.path.join(reports_dir, f"{username}_Recommendations.json")

@@ -111,7 +111,6 @@ def import_single_file():
         imported_count = result.get('imported', 0)
         
         dm.save_user_data(user_id)
-        dm.add_uploaded_filename(user_id, actual_file)
         
         # Now save to database
         db_session = get_session(DB_URL)
@@ -123,12 +122,13 @@ def import_single_file():
                 db_session.add(db_user)
                 db_session.flush()
             
-            # Load the imported transactions from JSON
-            dm.load_user_data(user_id)
+            # Only use transactions from this import (in dm.transactions from import_file call)
+            # Don't reload from JSON which would include all previous imports
             transactions = dm.transactions
             
             # Save each transaction to database
             saved_count = 0
+            receipt_ids_touched = set()
             for tx in transactions:
                 if tx.get('user_id') != user_id:
                     continue
@@ -185,7 +185,8 @@ def import_single_file():
                         location_id=location.id,
                         order_number=orderno,
                         date=purchase_date,
-                        is_active=True
+                        is_active=True,
+                        total_amount=0.0  # Will be calculated below
                     )
                     db_session.add(receipt)
                     db_session.flush()
@@ -203,9 +204,20 @@ def import_single_file():
                 )
                 db_session.add(line_item)
                 saved_count += 1
+                receipt_ids_touched.add(receipt.id)
+            
+            # Update receipt totals based on line items
+            for receipt_id in receipt_ids_touched:
+                receipt = db_session.query(Receipt).filter_by(id=receipt_id).first()
+                if receipt:
+                    total = sum(item.total_price for item in receipt.line_items if item.is_active)
+                    receipt.total_amount = round(float(total), 2)
             
             # Commit all changes
             db_session.commit()
+            
+            # Only mark as imported AFTER successful database save
+            dm.add_uploaded_filename(user_id, actual_file)
             
             return jsonify({
                 'success': True, 
