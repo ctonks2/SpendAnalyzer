@@ -1,27 +1,18 @@
 """
-Analytics API Blueprint
+Analytics API Blueprint (v1)
 Provides detailed spending analytics and insights.
 """
 
 from flask import Blueprint, jsonify, session, request
-from functools import wraps
 from collections import defaultdict
 from datetime import datetime
 
-analytics_bp = Blueprint('api_analytics', __name__, url_prefix='/api')
+from ..utils import login_required, is_valid_line_item, get_db_session_context
+
+analytics_bp = Blueprint('api_v1_analytics', __name__, url_prefix='/analytics')
 
 
-def login_required(f):
-    """Decorator to require login for routes"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Unauthorized'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
-
-
-@analytics_bp.route('/analytics', methods=['GET'])
+@analytics_bp.route('', methods=['GET'])
 @login_required
 def get_analytics():
     """
@@ -37,11 +28,9 @@ def get_analytics():
     from spend_analyzer.db import get_session, DB_URL
     from spend_analyzer.models import User
     
+    user_id = session.get('username')
     try:
-        user_id = session.get('username')
-        db_session = get_session(DB_URL)
-        
-        try:
+        with get_db_session_context(DB_URL) as db_session:
             user = db_session.query(User).filter_by(username=user_id).first()
             if not user:
                 return jsonify({'error': 'User not found'}), 404
@@ -86,17 +75,7 @@ def get_analytics():
                 store_names.add(receipt.location.store_name)
                 
                 for item in receipt.line_items:
-                    if item.is_active:
-                        # Skip items with "Unknown" or "Unknown Item" name
-                        if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
-                            continue
-                        
-                        # Skip items with 0.00 price and 0.00 total
-                        unit_price = float(item.unit_price or 0)
-                        total_price = float(item.total_price or 0)
-                        if unit_price == 0.0 and total_price == 0.0:
-                            continue
-                        
+                    if item.is_active and is_valid_line_item(item):
                         item_count += 1
                         total_spent += item.total_price
             
@@ -124,13 +103,7 @@ def get_analytics():
                     monthly_data[month_key]['spent'] += receipt_total
                     
                     for item in receipt.line_items:
-                        if item.is_active:
-                            if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
-                                continue
-                            unit_price = float(item.unit_price or 0)
-                            total_price = float(item.total_price or 0)
-                            if unit_price == 0.0 and total_price == 0.0:
-                                continue
+                        if item.is_active and is_valid_line_item(item):
                             monthly_data[month_key]['count'] += 1
             
             by_month = []
@@ -157,13 +130,7 @@ def get_analytics():
                     store_data[store_name]['dates'].append(receipt.date)
                 
                 for item in receipt.line_items:
-                    if item.is_active:
-                        if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
-                            continue
-                        unit_price = float(item.unit_price or 0)
-                        total_price = float(item.total_price or 0)
-                        if unit_price == 0.0 and total_price == 0.0:
-                            continue
+                    if item.is_active and is_valid_line_item(item):
                         store_data[store_name]['count'] += 1
             
             by_store = []
@@ -195,13 +162,7 @@ def get_analytics():
             
             for receipt in receipts:
                 for item in receipt.line_items:
-                    if item.is_active:
-                        if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
-                            continue
-                        unit_price = float(item.unit_price or 0)
-                        total_price = float(item.total_price or 0)
-                        if unit_price == 0.0 and total_price == 0.0:
-                            continue
+                    if item.is_active and is_valid_line_item(item):
                         category = item.category or 'Uncategorized'
                         category_data[category]['spent'] += item.total_price
                         category_data[category]['count'] += 1
@@ -314,10 +275,6 @@ def get_analytics():
                 'recent': recent,
                 'insights': insights
             })
-        
-        finally:
-            db_session.close()
-    
     except Exception as e:
         import traceback
         traceback.print_exc()

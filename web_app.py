@@ -7,10 +7,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from functools import wraps
 import os
 import json
-import unicodedata
-import re
 from datetime import datetime
-import traceback
 
 # Import existing modules
 from spend_analyzer.data_manager import DataManager
@@ -25,6 +22,7 @@ load_dotenv()
 from spend_analyzer.db import Base, get_engine, get_session, DB_URL
 from spend_analyzer.models import User, Location, Receipt, LineItem, Recommendation
 from spend_analyzer.migrate import migrate_from_json
+from spend_analyzer.utils import is_valid_line_item, get_db_session_context
 
 # Import API blueprints
 from spend_analyzer.api import api_bp
@@ -34,11 +32,8 @@ from spend_analyzer.api import api_bp
 
 def get_user_by_username(username):
     """Get a user by username from database"""
-    db_session = get_session(DB_URL)
-    try:
+    with get_db_session_context(DB_URL) as db_session:
         return db_session.query(User).filter_by(username=username).first()
-    finally:
-        db_session.close()
 
 
 def get_transactions_from_db(username):
@@ -47,8 +42,7 @@ def get_transactions_from_db(username):
     Returns list of dicts compatible with existing code.
     Excludes soft-deleted receipts and line items.
     """
-    db_session = get_session(DB_URL)
-    try:
+    with get_db_session_context(DB_URL) as db_session:
         user = db_session.query(User).filter_by(username=username).first()
         if not user:
             return []
@@ -64,14 +58,8 @@ def get_transactions_from_db(username):
                 if not item.is_active:
                     continue
                 
-                # Skip items with "Unknown" or "Unknown Item" name
-                if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
-                    continue
-                
-                # Skip items with 0.00 price and 0.00 total
-                unit_price = float(item.unit_price or 0)
-                total_price = float(item.total_price or 0)
-                if unit_price == 0.0 and total_price == 0.0:
+                # Use utility function to validate line items
+                if not is_valid_line_item(item):
                     continue
                     
                 tx = {
@@ -93,8 +81,6 @@ def get_transactions_from_db(username):
                 transactions.append(tx)
         
         return transactions
-    finally:
-        db_session.close()
 
 
 def get_filename_date(filename):
@@ -315,20 +301,16 @@ def add_transactions_to_db(username, transactions):
 
 def get_recommendations_from_db(username):
     """Get all recommendations for a user from database"""
-    db_session = get_session(DB_URL)
-    try:
+    with get_db_session_context(DB_URL) as db_session:
         user = db_session.query(User).filter_by(username=username).first()
         if not user:
             return []
         return [rec.to_dict() for rec in user.recommendations]
-    finally:
-        db_session.close()
 
 
 def save_recommendation_to_db(username, question, response, category="Other"):
     """Save a recommendation to database"""
-    db_session = get_session(DB_URL)
-    try:
+    with get_db_session_context(DB_URL) as db_session:
         user = db_session.query(User).filter_by(username=username).first()
         if not user:
             return False
@@ -342,62 +324,51 @@ def save_recommendation_to_db(username, question, response, category="Other"):
         db_session.add(rec)
         db_session.commit()
         return True
-    except:
-        db_session.rollback()
-        return False
-    finally:
-        db_session.close()
 
 
 def delete_recommendation_from_db(username, rec_index):
     """Delete a recommendation by index for a user"""
-    db_session = get_session(DB_URL)
     try:
-        user = db_session.query(User).filter_by(username=username).first()
-        if not user:
+        with get_db_session_context(DB_URL) as db_session:
+            user = db_session.query(User).filter_by(username=username).first()
+            if not user:
+                return False
+            
+            recs = list(user.recommendations)
+            if 0 <= rec_index < len(recs):
+                db_session.delete(recs[rec_index])
+                db_session.commit()
+                return True
             return False
-        
-        recs = list(user.recommendations)
-        if 0 <= rec_index < len(recs):
-            db_session.delete(recs[rec_index])
-            db_session.commit()
-            return True
-        return False
     except:
-        db_session.rollback()
         return False
-    finally:
-        db_session.close()
 
 
 def delete_user_data_from_db(username, delete_upload_history=True):
     """Delete all data for a user from database"""
-    db_session = get_session(DB_URL)
     try:
-        user = db_session.query(User).filter_by(username=username).first()
-        if not user:
-            return False
-        
-        # Delete all receipts (cascade deletes line items)
-        for receipt in user.receipts:
-            db_session.delete(receipt)
-        
-        # Delete upload history if requested
-        if delete_upload_history:
-            for history in user.upload_history:
-                db_session.delete(history)
-        
-        # Delete recommendations
-        for rec in user.recommendations:
-            db_session.delete(rec)
-        
-        db_session.commit()
-        return True
+        with get_db_session_context(DB_URL) as db_session:
+            user = db_session.query(User).filter_by(username=username).first()
+            if not user:
+                return False
+            
+            # Delete all receipts (cascade deletes line items)
+            for receipt in user.receipts:
+                db_session.delete(receipt)
+            
+            # Delete upload history if requested
+            if delete_upload_history:
+                for history in user.upload_history:
+                    db_session.delete(history)
+            
+            # Delete recommendations
+            for rec in user.recommendations:
+                db_session.delete(rec)
+            
+            db_session.commit()
+            return True
     except:
-        db_session.rollback()
         return False
-    finally:
-        db_session.close()
 
 
 # === Soft Delete and Hard Delete Functions ===
@@ -407,124 +378,112 @@ def soft_delete_receipt(username, receipt_id):
     Soft delete a receipt - sets is_active to False
     Also soft deletes all associated line items
     """
-    db_session = get_session(DB_URL)
     try:
-        user = db_session.query(User).filter_by(username=username).first()
-        if not user:
-            return False, "User not found"
-        
-        receipt = db_session.query(Receipt).filter_by(id=receipt_id, user_id=user.id).first()
-        if not receipt:
-            return False, "Receipt not found"
-        
-        # Soft delete the receipt
-        receipt.is_active = False
-        receipt.updated_at = datetime.utcnow()
-        
-        # Soft delete all line items
-        for item in receipt.line_items:
-            item.is_active = False
-            item.updated_at = datetime.utcnow()
-        
-        db_session.commit()
-        return True, "Receipt deleted successfully"
+        with get_db_session_context(DB_URL) as db_session:
+            user = db_session.query(User).filter_by(username=username).first()
+            if not user:
+                return False, "User not found"
+            
+            receipt = db_session.query(Receipt).filter_by(id=receipt_id, user_id=user.id).first()
+            if not receipt:
+                return False, "Receipt not found"
+            
+            # Soft delete the receipt
+            receipt.is_active = False
+            receipt.updated_at = datetime.utcnow()
+            
+            # Soft delete all line items
+            for item in receipt.line_items:
+                item.is_active = False
+                item.updated_at = datetime.utcnow()
+            
+            db_session.commit()
+            return True, "Receipt deleted successfully"
     except Exception as e:
-        db_session.rollback()
         return False, str(e)
-    finally:
-        db_session.close()
 
 
 def hard_delete_receipt(username, receipt_id):
     """
     Hard delete a receipt - completely removes it and all associated line items
     """
-    db_session = get_session(DB_URL)
     try:
-        user = db_session.query(User).filter_by(username=username).first()
-        if not user:
-            return False, "User not found"
-        
-        receipt = db_session.query(Receipt).filter_by(id=receipt_id, user_id=user.id).first()
-        if not receipt:
-            return False, "Receipt not found"
-        
-        # Explicitly delete all line items first
-        for item in receipt.line_items:
-            db_session.delete(item)
-        
-        # Then delete the receipt
-        db_session.delete(receipt)
-        db_session.commit()
-        return True, "Receipt permanently deleted"
+        with get_db_session_context(DB_URL) as db_session:
+            user = db_session.query(User).filter_by(username=username).first()
+            if not user:
+                return False, "User not found"
+            
+            receipt = db_session.query(Receipt).filter_by(id=receipt_id, user_id=user.id).first()
+            if not receipt:
+                return False, "Receipt not found"
+            
+            # Explicitly delete all line items first
+            for item in receipt.line_items:
+                db_session.delete(item)
+            
+            # Then delete the receipt
+            db_session.delete(receipt)
+            db_session.commit()
+            return True, "Receipt permanently deleted"
     except Exception as e:
-        db_session.rollback()
         return False, str(e)
-    finally:
-        db_session.close()
 
 
 def soft_delete_line_item(username, line_item_id):
     """
     Soft delete a line item - sets is_active to False
     """
-    db_session = get_session(DB_URL)
     try:
-        # Verify user owns this line item
-        user = db_session.query(User).filter_by(username=username).first()
-        if not user:
-            return False, "User not found"
-        
-        # Query line item through receipt to verify ownership
-        line_item = db_session.query(LineItem).join(Receipt).filter(
-            LineItem.id == line_item_id,
-            Receipt.user_id == user.id
-        ).first()
-        
-        if not line_item:
-            return False, "Line item not found"
-        
-        # Soft delete the line item
-        line_item.is_active = False
-        line_item.updated_at = datetime.utcnow()
-        
-        db_session.commit()
-        return True, "Item deleted successfully"
+        with get_db_session_context(DB_URL) as db_session:
+            # Verify user owns this line item
+            user = db_session.query(User).filter_by(username=username).first()
+            if not user:
+                return False, "User not found"
+            
+            # Query line item through receipt to verify ownership
+            line_item = db_session.query(LineItem).join(Receipt).filter(
+                LineItem.id == line_item_id,
+                Receipt.user_id == user.id
+            ).first()
+            
+            if not line_item:
+                return False, "Line item not found"
+            
+            # Soft delete the line item
+            line_item.is_active = False
+            line_item.updated_at = datetime.utcnow()
+            
+            db_session.commit()
+            return True, "Item deleted successfully"
     except Exception as e:
-        db_session.rollback()
         return False, str(e)
-    finally:
-        db_session.close()
 
 
 def hard_delete_line_item(username, line_item_id):
     """
     Hard delete a line item - completely removes it
     """
-    db_session = get_session(DB_URL)
     try:
-        user = db_session.query(User).filter_by(username=username).first()
-        if not user:
-            return False, "User not found"
-        
-        # Query line item through receipt to verify ownership
-        line_item = db_session.query(LineItem).join(Receipt).filter(
-            LineItem.id == line_item_id,
-            Receipt.user_id == user.id
-        ).first()
-        
-        if not line_item:
-            return False, "Line item not found"
-        
-        # Delete the line item
-        db_session.delete(line_item)
-        db_session.commit()
-        return True, "Item permanently deleted"
+        with get_db_session_context(DB_URL) as db_session:
+            user = db_session.query(User).filter_by(username=username).first()
+            if not user:
+                return False, "User not found"
+            
+            # Query line item through receipt to verify ownership
+            line_item = db_session.query(LineItem).join(Receipt).filter(
+                LineItem.id == line_item_id,
+                Receipt.user_id == user.id
+            ).first()
+            
+            if not line_item:
+                return False, "Line item not found"
+            
+            # Delete the line item
+            db_session.delete(line_item)
+            db_session.commit()
+            return True, "Item permanently deleted"
     except Exception as e:
-        db_session.rollback()
         return False, str(e)
-    finally:
-        db_session.close()
 
 
 def get_receipt_for_editing(username, receipt_id):
@@ -532,8 +491,7 @@ def get_receipt_for_editing(username, receipt_id):
     Get receipt data for editing, including all line items with discount info
     Returns tuple: (receipt_dict, line_items_list)
     """
-    db_session = get_session(DB_URL)
-    try:
+    with get_db_session_context(DB_URL) as db_session:
         user = db_session.query(User).filter_by(username=username).first()
         if not user:
             return None, []
@@ -555,17 +513,11 @@ def get_receipt_for_editing(username, receipt_id):
         line_items = []
         for item in receipt.line_items:
             # Skip RECEIPT_TOTAL and DISCOUNT items (legacy support)
-            if item.item_name == "RECEIPT_TOTAL" or (item.item_name and item.item_name.startswith("DISCOUNT (")):
+            if item.item_name == "RECEIPT_TOTAL" or (item.item_name and item.item_name.startswith("DISCOUNT (")):  
                 continue
             
-            # Skip items with "Unknown" or "Unknown Item" name
-            if item.item_name and ("Unknown" in item.item_name or "unknown" in item.item_name.lower()):
-                continue
-            
-            # Skip items with 0.00 price and 0.00 total
-            unit_price = float(item.unit_price or 0)
-            total_price = float(item.total_price or 0)
-            if unit_price == 0.0 and total_price == 0.0:
+            # Use utility function to validate line items
+            if not is_valid_line_item(item):
                 continue
             
             # Calculate discount from the item data: (unit_price * quantity) - total_price
@@ -585,81 +537,76 @@ def get_receipt_for_editing(username, receipt_id):
             })
         
         return receipt_dict, line_items
-    finally:
-        db_session.close()
 
 
 def update_receipt_in_db(username, receipt_id, receipt_data, line_items_data):
     """
     Update a receipt and its line items (discount stored as price difference, no separate DISCOUNT rows)
     """
-    db_session = get_session(DB_URL)
     try:
-        user = db_session.query(User).filter_by(username=username).first()
-        if not user:
-            return False, "User not found"
-        
-        receipt = db_session.query(Receipt).filter_by(id=receipt_id, user_id=user.id).first()
-        if not receipt:
-            return False, "Receipt not found"
-        
-        # Update receipt
-        from datetime import datetime as dt
-        receipt.date = dt.strptime(receipt_data['date'], '%Y-%m-%d').date()
-        receipt.order_number = receipt_data.get('order_number')
-        receipt.total_amount = float(receipt_data.get('total_amount', 0))
-        receipt.updated_at = datetime.utcnow()
-        
-        # Update or create line items
-        existing_ids = set()
-        
-        for item_data in line_items_data:
-            item_id = item_data.get('id')
-            discount = float(item_data.get('discount', 0))
-            quantity = float(item_data.get('quantity', 1))
-            unit_price = float(item_data.get('unit_price', 0)) if item_data.get('unit_price') else None
+        with get_db_session_context(DB_URL) as db_session:
+            user = db_session.query(User).filter_by(username=username).first()
+            if not user:
+                return False, "User not found"
             
-            # Calculate total_price: (unit_price * quantity) - discount
-            subtotal = unit_price * quantity if unit_price else 0
-            total_price = subtotal - discount
+            receipt = db_session.query(Receipt).filter_by(id=receipt_id, user_id=user.id).first()
+            if not receipt:
+                return False, "Receipt not found"
             
-            if item_id:
-                # Update existing line item
-                line_item = db_session.query(LineItem).filter_by(id=item_id, receipt_id=receipt.id).first()
-                if line_item:
-                    line_item.item_name = item_data.get('item_name', '')
-                    line_item.product_upc = item_data.get('product_upc')
-                    line_item.quantity = quantity
-                    line_item.unit_price = unit_price
-                    line_item.total_price = total_price
-                    line_item.updated_at = datetime.utcnow()
-                    existing_ids.add(item_id)
-            else:
-                # Create new line item
-                new_item = LineItem(
-                    receipt_id=receipt.id,
-                    item_name=item_data.get('item_name', ''),
-                    product_upc=item_data.get('product_upc'),
-                    quantity=quantity,
-                    unit_price=unit_price,
-                    total_price=total_price
-                )
-                db_session.add(new_item)
-                db_session.flush()
-                existing_ids.add(new_item.id)
-        
-        # Delete line items that were not provided
-        for item in receipt.line_items:
-            if item.id not in existing_ids:
-                db_session.delete(item)
-        
-        db_session.commit()
-        return True, "Receipt updated successfully"
+            # Update receipt
+            from datetime import datetime as dt
+            receipt.date = dt.strptime(receipt_data['date'], '%Y-%m-%d').date()
+            receipt.order_number = receipt_data.get('order_number')
+            receipt.total_amount = float(receipt_data.get('total_amount', 0))
+            receipt.updated_at = datetime.utcnow()
+            
+            # Update or create line items
+            existing_ids = set()
+            
+            for item_data in line_items_data:
+                item_id = item_data.get('id')
+                discount = float(item_data.get('discount', 0))
+                quantity = float(item_data.get('quantity', 1))
+                unit_price = float(item_data.get('unit_price', 0)) if item_data.get('unit_price') else None
+                
+                # Calculate total_price: (unit_price * quantity) - discount
+                subtotal = unit_price * quantity if unit_price else 0
+                total_price = subtotal - discount
+                
+                if item_id:
+                    # Update existing line item
+                    line_item = db_session.query(LineItem).filter_by(id=item_id, receipt_id=receipt.id).first()
+                    if line_item:
+                        line_item.item_name = item_data.get('item_name', '')
+                        line_item.product_upc = item_data.get('product_upc')
+                        line_item.quantity = quantity
+                        line_item.unit_price = unit_price
+                        line_item.total_price = total_price
+                        line_item.updated_at = datetime.utcnow()
+                        existing_ids.add(item_id)
+                else:
+                    # Create new line item
+                    new_item = LineItem(
+                        receipt_id=receipt.id,
+                        item_name=item_data.get('item_name', ''),
+                        product_upc=item_data.get('product_upc'),
+                        quantity=quantity,
+                        unit_price=unit_price,
+                        total_price=total_price
+                    )
+                    db_session.add(new_item)
+                    db_session.flush()
+                    existing_ids.add(new_item.id)
+            
+            # Delete line items that were not provided
+            for item in receipt.line_items:
+                if item.id not in existing_ids:
+                    db_session.delete(item)
+            
+            db_session.commit()
+            return True, "Receipt updated successfully"
     except Exception as e:
-        db_session.rollback()
         return False, str(e)
-    finally:
-        db_session.close()
 
 
 def filter_context_by_question(transactions, question):

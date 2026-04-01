@@ -1,7 +1,12 @@
-"""Simple CLI for Spend Analyzer prototype"""
+"""Command-line interface for Spend Analyzer (DEPRECATED)
+
+DEPRECATED: The CLI is being phased out in favor of the web application.
+Please use `python web_app.py` instead for the best user experience.
+
+The CLI is maintained for backward compatibility only and may be removed in a future version.
+"""
 import os
 import json
-from collections import Counter, defaultdict
 from .data_manager import DataManager
 from .llm_client import LLMClient
 from .llm_menu import LLMMenu

@@ -11,15 +11,15 @@ sys.path.insert(0, os.getcwd())
 
 from spend_analyzer.db import get_session, DB_URL
 from spend_analyzer.models import User, Receipt, LineItem, Location, Recommendation
-from spend_analyzer.utils import get_db_session_context
 
 def delete_all_data():
     """Delete all data from the database"""
+    db_session = get_session(DB_URL)
+    
     try:
-        with get_db_session_context(DB_URL) as db_session:
-            print("=" * 60)
-            print("DATABASE RESET - DELETING ALL DATA")
-            print("=" * 60)
+        print("=" * 60)
+        print("DATABASE RESET - DELETING ALL DATA")
+        print("=" * 60)
         
         # Get counts before deletion
         user_count = db_session.query(User).count()

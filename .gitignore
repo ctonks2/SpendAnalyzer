@@ -1,53 +1,144 @@
-# Environment variables (NEVER commit these!)
+# ============ ENVIRONMENT & SECRETS ============
+# CRITICAL: Never commit environment files or secrets
 .env
 .env.local
-.env.production
 .env.*.local
+.env.production
+.env.staging
+.env.development
+*.env
 
-# Database files
+# ============ DATABASE FILES ============
+# Never commit database files or backups
 *.db
 *.sqlite
 *.sqlite3
 spend_data.db
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
+# Database backups
+*.db.backup
+*.sql
+*.sql.gz
 
-# Python
+# ============ PYTHON & VIRTUALENV ============
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-*.egg-info/
-.eggs/
-dist/
+*$py.class
+
+# Distribution / packaging
+.Python
 build/
-.egg
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
 # Virtual environments
 venv/
 env/
 ENV/
+env.bak/
+venv.bak/
 .venv/
+.env.venv
+.python-version
+pipenv.lock
+poetry.lock
 
-# IDE / Editor
+# ============ IDE & EDITOR ============
+# VS Code
 .vscode/
+.vscode-insiders/
+*.code-workspace
+
+# PyCharm / IntelliJ
 .idea/
+*.iml
+*.iws
+*.ipr
 *.swp
 *.swo
 *~
+.project
+.pydevproject
 
-# OS
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+.vim/
+*.vim
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============ OS SPECIFIC ============
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
-# Logs
-*.log
-logs/
-
-# Testing
+# ============ TESTING & COVERAGE ============
 .pytest_cache/
+.pytest_cache
+.tox/
 .coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
 htmlcov/
+.nox/
+.coverage.xml
+pytest-results/
 
-# Temporary files
+# ============ LOGGING & TEMPORARY FILES ============
+*.log
+*.log.*
+logs/
 *.tmp
 *.bak
+*.orig
+*~
+.tmp/
+
+# ============ FLASK/WERKZEUG SPECIFIC ============
+instance/
+.webassets-cache
+.flask_session
+
+# ============ MISCELLANEOUS ============
+.venv
+.env_local
+secrets.json
+config_local.py
+local_settings.py
 

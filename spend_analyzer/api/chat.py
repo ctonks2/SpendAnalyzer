@@ -1,26 +1,17 @@
 """
-Chat/LLM API Blueprint
+Chat/LLM API Blueprint (v1)
 Provides AI chat and recommendation endpoints.
 """
 
 from flask import Blueprint, jsonify, session, request
-from functools import wraps
 import json
 
-chat_bp = Blueprint('api_chat', __name__, url_prefix='/api')
+from ..utils import login_required
+
+chat_bp = Blueprint('api_v1_chat', __name__, url_prefix='/chat')
 
 
-def login_required(f):
-    """Decorator to require login for routes"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Unauthorized'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
-
-
-@chat_bp.route('/chat', methods=['POST'])
+@chat_bp.route('', methods=['POST'])
 @login_required
 def chat():
     """

@@ -732,7 +732,7 @@ let monthlyChart, storeChart, categoryChart, weeklyChart;
 
 async function loadAnalytics() {
     try {
-        const response = await fetch('/api/analytics');
+        const response = await fetch('/api/v1/analytics');
         const data = await response.json();
 
         if (data.error) {
