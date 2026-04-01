@@ -188,7 +188,7 @@
         const testQuestion = document.getElementById('testQuestion')?.value.trim() || '';
         document.getElementById('llmContextDisplay').textContent = 'Loading...';
         
-        let url = '/api/llm_context';
+        let url = '/api/v1/analytics/llm_context';
         if (testQuestion) {
             url += `?question=${encodeURIComponent(testQuestion)}`;
         }
@@ -235,7 +235,7 @@
         messages.innerHTML += `<div class="message assistant" id="typing">Thinking...</div>`;
         messages.scrollTop = messages.scrollHeight;
         
-        fetch('/api/chat', {
+        fetch('/api/v1/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -326,7 +326,7 @@
             saveBtn.textContent = '⏳ Saving...';
         }
         
-        fetch('/api/save_recommendation', {
+        fetch('/api/v1/chat/save_recommendation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question: lastQuestion, response: lastResponse, category: category })

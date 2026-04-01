@@ -25,7 +25,10 @@ class LLMClient:
                 cfg = {}
 
         # Prefer environment variable, fall back to configs/llm.yaml
-        self.api_key = os.getenv("MISTRAL_API_KEY") or cfg.get("mistral_api_key") or cfg.get("api_key")
+        api_key_env = os.getenv("MISTRAL_API_KEY")
+        if api_key_env:
+            api_key_env = api_key_env.strip()  # Remove any whitespace
+        self.api_key = api_key_env or cfg.get("mistral_api_key") or cfg.get("api_key")
         self.mock = self.api_key is None
 
         # set defaults for model/endpoint and agent conversation endpoint, allow config override
@@ -34,7 +37,10 @@ class LLMClient:
         self.agent_conv_endpoint = cfg.get("mistral_agent_conv_endpoint") or DEFAULT_MISTRAL_AGENT_CONV_ENDPOINT
 
         # optional agent id (env overrides config)
-        self.agent_id = os.getenv("MISTRAL_AGENT_ID") or cfg.get("mistral_agent_id")
+        agent_id_env = os.getenv("MISTRAL_AGENT_ID")
+        if agent_id_env:
+            agent_id_env = agent_id_env.strip()
+        self.agent_id = agent_id_env or cfg.get("mistral_agent_id")
 
     def set_api_key(self, key, persist=False):
         """Set the API key for this client. If persist=True, save to configs/llm.yaml."""

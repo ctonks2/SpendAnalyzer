@@ -18,10 +18,47 @@ def chat():
     API endpoint for LLM chat with spending data context.
     Accepts chat message and optional conversation history.
     """
-    from spend_analyzer.db import (
-        get_transactions_from_db, filter_context_by_question,
-        context_to_table
-    )
+    # Import helper functions from parent scope (web_app.py)
+    # These need to be imported locally to avoid circular imports
+    try:
+        from web_app import get_transactions_from_db, filter_context_by_question, context_to_table
+    except ImportError:
+        # Fallback: define minimal inline versions if web_app import fails
+        def get_transactions_from_db(username):
+            from ..db import DB_URL
+            from ..models import User
+            from ..utils import get_db_session_context
+            with get_db_session_context(DB_URL) as db_session:
+                user = db_session.query(User).filter_by(username=username).first()
+                if not user:
+                    return []
+                transactions = []
+                for receipt in user.receipts:
+                    if not receipt.is_active:
+                        continue
+                    for item in receipt.line_items:
+                        if not item.is_active:
+                            continue
+                        transactions.append({
+                            'date': receipt.date.isoformat(),
+                            'store': receipt.location.store_name,
+                            'item_name': item.item_name,
+                            'category': item.category or 'Uncategorized',
+                            'total_price': float(item.total_price)
+                        })
+                return transactions
+        
+        def filter_context_by_question(transactions, question):
+            return transactions, []
+        
+        def context_to_table(transactions):
+            if not transactions:
+                return "No transactions found."
+            lines = ["Date | Store | Item | Category | Price"]
+            for t in transactions:
+                lines.append(f"{t['date']} | {t['store']} | {t['item_name']} | {t['category']} | ${t['total_price']:.2f}")
+            return "\n".join(lines)
+    
     from spend_analyzer.llm_client import LLMClient
     
     try:
@@ -112,3 +149,47 @@ def chat():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e), 'response': f'Sorry, I encountered an error: {str(e)}'})
+
+
+@chat_bp.route('/save_recommendation', methods=['POST'])
+@login_required
+def save_recommendation():
+    """Save an AI insight/recommendation to the database"""
+    from ..db import DB_URL
+    from ..models import Recommendation, User
+    
+    try:
+        data = request.json
+        user_id = session.get('username')
+        question = data.get('question', '')
+        response = data.get('response', '')
+        category = data.get('category', 'Other')
+        
+        if not question or not response:
+            return jsonify({'success': False, 'error': 'Missing question or response'})
+        
+        # Import context manager
+        from ..utils import get_db_session_context
+        
+        with get_db_session_context(DB_URL) as db_session:
+            # Get user
+            user = db_session.query(User).filter_by(username=user_id).first()
+            if not user:
+                return jsonify({'success': False, 'error': 'User not found'})
+            
+            # Create recommendation
+            recommendation = Recommendation(
+                user_id=user.id,
+                question=question,
+                response=response,
+                category=category
+            )
+            db_session.add(recommendation)
+            db_session.commit()
+        
+        return jsonify({'success': True, 'message': 'Recommendation saved'})
+    
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})

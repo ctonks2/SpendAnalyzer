@@ -285,10 +285,48 @@ def get_analytics():
 @login_required
 def get_llm_context():
     """Get the raw context sent to LLM"""
-    from spend_analyzer.db import (
-        get_transactions_from_db, filter_context_by_question,
-        context_to_table, slim_context
-    )
+    # Import helper functions from web_app (avoiding circular imports)
+    try:
+        from web_app import get_transactions_from_db, filter_context_by_question, context_to_table, slim_context
+    except ImportError:
+        # Fallback: define minimal inline versions
+        def get_transactions_from_db(username):
+            from ..db import DB_URL
+            from ..models import User
+            from ..utils import get_db_session_context
+            with get_db_session_context(DB_URL) as db_session:
+                user = db_session.query(User).filter_by(username=username).first()
+                if not user:
+                    return []
+                transactions = []
+                for receipt in user.receipts:
+                    if not receipt.is_active:
+                        continue
+                    for item in receipt.line_items:
+                        if not item.is_active:
+                            continue
+                        transactions.append({
+                            'date': receipt.date.isoformat(),
+                            'store': receipt.location.store_name,
+                            'item_name': item.item_name,
+                            'category': item.category or 'Uncategorized',
+                            'total_price': float(item.total_price)
+                        })
+                return transactions
+        
+        def filter_context_by_question(transactions, question):
+            return transactions, []
+        
+        def context_to_table(transactions):
+            if not transactions:
+                return "No transactions found."
+            lines = ["Date | Store | Item | Category | Price"]
+            for t in transactions:
+                lines.append(f"{t['date']} | {t['store']} | {t['item_name']} | {t['category']} | ${t['total_price']:.2f}")
+            return "\n".join(lines)
+        
+        def slim_context(transactions):
+            return context_to_table(transactions)
     
     try:
         user_id = session.get('username')

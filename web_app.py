@@ -7,6 +7,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from functools import wraps
 import os
 import json
+import re
 from datetime import datetime
 
 # Import existing modules
@@ -16,7 +17,21 @@ from spend_analyzer.llm_menu import LLMMenu
 
 # Load environment variables first
 from dotenv import load_dotenv
-load_dotenv()
+# Load .env from project root
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path=env_path, override=True)
+
+# Debug: Verify environment variables are loaded
+api_key = os.getenv('MISTRAL_API_KEY')
+agent_id = os.getenv('MISTRAL_AGENT_ID')
+if api_key:
+    print(f"✓ MISTRAL_API_KEY loaded (length: {len(api_key)})")
+else:
+    print("✗ MISTRAL_API_KEY not found in environment")
+if agent_id:
+    print(f"✓ MISTRAL_AGENT_ID loaded: {agent_id}")
+else:
+    print("✗ MISTRAL_AGENT_ID not found in environment")
 
 # Import database modules (DB_URL is now defined in db.py)
 from spend_analyzer.db import Base, get_engine, get_session, DB_URL
@@ -736,16 +751,48 @@ def context_to_table(transactions):
     """
     from jinja2 import Template
     
-    # Jinja template for compact table format
-    table_template = Template("""Date|Store|Item|Qty|Price
+    # Store name to abbreviation mapping
+    store_abbrev = {
+        'smiths': 'S',
+        'costco': 'C',
+        'maceys': 'M',
+        'walmart': 'W',
+        'target': 'T',
+        'whole foods': 'WF',
+        'trader joe': 'TJ',
+        'kroger': 'K',
+        'safeway': 'SF',
+        'winco': 'WC',
+        'amazon': 'A',
+        'sams club': 'SC',
+        'aldi': 'AL'
+    }
+    
+    def get_store_abbrev(store_name):
+        """Convert full store name to abbreviation"""
+        if not store_name:
+            return '?'
+        store_lower = store_name.lower().strip()
+        # Try exact match first
+        if store_lower in store_abbrev:
+            return store_abbrev[store_lower]
+        # Try partial match
+        for key, abbrev in store_abbrev.items():
+            if key in store_lower or store_lower in key:
+                return abbrev
+        # Default: first letter
+        return store_lower[0].upper()
+    
+    # Jinja template for compact table format (removed Qty column)
+    table_template = Template("""Date|Store|Item|Price
 {% for t in transactions -%}
-{{ t.date or 'unknown' }}|{{ (t.source or t.store or 'unknown')[:12] }}|{{ (t.item_name or '')[:20] }}|{{ t.quantity or 1 }}|{{ "%.2f"|format(t.total_price or 0) }}
+{{ t.date or 'unknown' }}|{{ get_store_abbrev(t.source or t.store or 'unknown') }}|{{ (t.item_name or '')[:25] }}|{{ "%.2f"|format(t.total_price or 0) }}
 {% endfor %}""")
     
     # Filter out RECEIPT_TOTAL entries for cleaner context
     filtered = [t for t in transactions if t.get('item_name') != 'RECEIPT_TOTAL']
     
-    return table_template.render(transactions=filtered)
+    return table_template.render(transactions=filtered, get_store_abbrev=get_store_abbrev)
 
 
 def context_to_summary(transactions):
