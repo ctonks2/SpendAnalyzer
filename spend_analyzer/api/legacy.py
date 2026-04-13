@@ -44,11 +44,18 @@ def list_files():
         dm.load_user_data(user_id)
         already_uploaded = set(dm.get_uploaded_filenames(user_id))
         
-        # List ALL files in data/raw
+        # List files in data/raw, excluding system files
+        # Only include actual data files (json, xlsx, xls, csv, etc)
+        valid_extensions = {'.json', '.xlsx', '.xls', '.csv', '.xml', '.pdf'}
+        excluded_files = {'.gitkeep', 'deployment.txt'}
+        
         files = []
         for fname in sorted(os.listdir(raw_dir)):
             path = os.path.join(raw_dir, fname)
             if os.path.isfile(path):
+                # Skip system files and files without data extensions
+                if fname in excluded_files or not any(fname.lower().endswith(ext) for ext in valid_extensions):
+                    continue
                 files.append({
                     'name': fname,
                     'imported': fname in already_uploaded  # Mark if already imported by this user

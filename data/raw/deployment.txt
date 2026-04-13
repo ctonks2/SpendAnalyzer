@@ -1,0 +1,1 @@
+https://spendanalyzer-production.up.railway.app/login
