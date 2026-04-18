@@ -103,8 +103,19 @@ class LLMClient:
         payload = {"agent_id": aid, "inputs": inputs_list}
         
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        
+        # Log request details
+        print(f"[LLM CLIENT] POST {self.agent_conv_endpoint}")
+        print(f"[LLM CLIENT] Agent ID: {aid}")
+        print(f"[LLM CLIENT] Payload size: {len(json.dumps(payload))} bytes")
+        
         try:
             resp = requests.post(self.agent_conv_endpoint, json=payload, headers=headers, timeout=30)
+            
+            # Log response status
+            print(f"[LLM CLIENT] Response Status: {resp.status_code}")
+            print(f"[LLM CLIENT] Response Headers: {dict(resp.headers)}")
+            
             # provide helpful error body if status >=400
             if resp.status_code >= 400:
                 # try to include JSON detail when available
@@ -112,9 +123,14 @@ class LLMClient:
                     body = resp.json()
                 except Exception:
                     body = resp.text
+                print(f"[LLM CLIENT ERROR] {resp.status_code}: {body}")
                 return {"error": f"agent request failed: {resp.status_code}", "body": body}
-            return resp.json()
+            
+            result = resp.json()
+            print(f"[LLM CLIENT SUCCESS] Got response with keys: {result.keys() if isinstance(result, dict) else type(result)}")
+            return result
         except RequestException as e:
+            print(f"[LLM CLIENT EXCEPTION] {type(e).__name__}: {str(e)}")
             # include response text if available
             resp = getattr(e, "response", None)
             if resp is not None:
