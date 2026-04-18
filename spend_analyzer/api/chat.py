@@ -153,7 +153,7 @@ def chat():
                     user_message = f'Too much data was sent to the AI. Please try again by {suggestion}'
                     return jsonify({'error': str(error_detail), 'response': user_message, 'is_token_error': True})
                 
-                return jsonify({'error': str(error_detail), 'response': 'Sorry, I encountered an error.'})
+                return jsonify({'error': str(error_detail), 'response': f'LLM Error: {str(error_detail)}'})
             
             # Parse agent response
             response_text = None
@@ -233,7 +233,7 @@ def chat():
             user_message = f'Too much data was sent to the AI. Please try again by {suggestion}'
             return jsonify({'error': str(e), 'response': user_message, 'is_token_error': True})
         
-        return jsonify({'error': str(e), 'response': f'Sorry, I encountered an error: {str(e)}'})
+        return jsonify({'error': str(e), 'response': f'Error: {str(e)}'})
 
 
 @chat_bp.route('/save_recommendation', methods=['POST'])

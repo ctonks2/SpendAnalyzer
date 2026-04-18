@@ -110,7 +110,7 @@ class LLMClient:
         print(f"[LLM CLIENT] Payload size: {len(json.dumps(payload))} bytes")
         
         try:
-            resp = requests.post(self.agent_conv_endpoint, json=payload, headers=headers, timeout=30)
+            resp = requests.post(self.agent_conv_endpoint, json=payload, headers=headers, timeout=60)
             
             # Log response status
             print(f"[LLM CLIENT] Response Status: {resp.status_code}")
@@ -208,7 +208,7 @@ class LLMClient:
         }
 
         try:
-            resp = requests.post(self.endpoint, json=payload, headers=headers, timeout=30)
+            resp = requests.post(self.endpoint, json=payload, headers=headers, timeout=60)
             resp.raise_for_status()
         except RequestException as e:
             return f"LLM API request failed: {e}"
